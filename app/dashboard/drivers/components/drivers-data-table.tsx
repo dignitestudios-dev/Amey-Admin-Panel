@@ -21,13 +21,11 @@ import {
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -186,9 +184,17 @@ export function DriversDataTable() {
     rideCount: "all",
     armedType: "all",
   });
+  const [draftFilters, setDraftFilters] = useState<Filters>(filters);
   const [searchQuery, setSearchQuery] = useState("");
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const activeFilterCount = [
+    filters.status,
+    filters.rating,
+    filters.rideCount,
+    filters.armedType,
+  ].filter((value) => value !== "all").length;
 
   const hasActiveFilters =
     filters.status !== "all" ||
@@ -325,11 +331,19 @@ export function DriversDataTable() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-9 w-9 p-0 border border-gray-200"
-            onClick={() => setIsFilterOpen(true)}
+            className="h-9 w-9 p-0 border border-gray-200 relative"
+            onClick={() => {
+              setDraftFilters(filters);
+              setIsFilterOpen(true);
+            }}
             title="Open filters"
           >
             <Filter className="w-4 h-4 text-gray-700" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 h-4 min-w-4 rounded-full bg-black px-1 text-[10px] leading-4 text-white">
+                {activeFilterCount}
+              </span>
+            )}
           </Button>
 
           {hasActiveFilters && (
@@ -356,21 +370,33 @@ export function DriversDataTable() {
       </div>
 
       {/* Filter Dialog (minimal) */}
-      <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-        <DialogContent>
-          <DialogHeader>
+      <Dialog
+        open={isFilterOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDraftFilters(filters);
+          }
+          setIsFilterOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-140 p-0 overflow-hidden">
+          <DialogHeader className="border-b bg-muted/30 px-6 py-5">
             <DialogTitle className="text-black">Filter Drivers</DialogTitle>
+            <DialogDescription>
+              Select your criteria and save to apply all filters at once.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm  text-black mb-2 block">Status</label>
+          <div className="px-6 py-5 space-y-5">
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <label className="text-sm text-black block">Status</label>
               <Select
-                value={filters.status}
+                value={draftFilters.status}
                 onValueChange={(value) =>
-                  setFilters({ ...filters, status: value })
+                  setDraftFilters({ ...draftFilters, status: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -381,19 +407,17 @@ export function DriversDataTable() {
                   <SelectItem value="suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+              </div>
 
-            <div>
-              <label className="text-sm  text-black mb-2 block">
-                Minimum Rating
-              </label>
+              <div className="space-y-2">
+                <label className="text-sm text-black block">Minimum Rating</label>
               <Select
-                value={filters.rating}
+                value={draftFilters.rating}
                 onValueChange={(value) =>
-                  setFilters({ ...filters, rating: value })
+                  setDraftFilters({ ...draftFilters, rating: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -404,19 +428,17 @@ export function DriversDataTable() {
                   <SelectItem value="4.5">4.5 stars & above</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+              </div>
 
-            <div>
-              <label className="text-sm  text-black mb-2 block">
-                Minimum Rides
-              </label>
+              <div className="space-y-2">
+                <label className="text-sm text-black block">Minimum Rides</label>
               <Select
-                value={filters.rideCount}
+                value={draftFilters.rideCount}
                 onValueChange={(value) =>
-                  setFilters({ ...filters, rideCount: value })
+                  setDraftFilters({ ...draftFilters, rideCount: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -427,19 +449,17 @@ export function DriversDataTable() {
                   <SelectItem value="300">300+ rides</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+              </div>
 
-            <div>
-              <label className="text-sm  text-black mb-2 block">
-                Armed Type
-              </label>
+              <div className="space-y-2">
+                <label className="text-sm text-black block">Armed Type</label>
               <Select
-                value={filters.armedType}
+                value={draftFilters.armedType}
                 onValueChange={(value) =>
-                  setFilters({ ...filters, armedType: value })
+                  setDraftFilters({ ...draftFilters, armedType: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -448,11 +468,41 @@ export function DriversDataTable() {
                   <SelectItem value="unarmed">Unarmed</SelectItem>
                 </SelectContent>
               </Select>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              {activeFilterCount > 0
+                ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
+                : "No filters are currently applied."}
             </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="border-t px-6 py-4 gap-2">
+            <Button
+              variant="outline"
+              onClick={() =>
+                setDraftFilters({
+                  status: "all",
+                  rating: "all",
+                  rideCount: "all",
+                  armedType: "all",
+                })
+              }
+            >
+              Reset
+            </Button>
             <Button variant="outline" onClick={() => setIsFilterOpen(false)}>
-              Close
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setFilters(draftFilters);
+                setIsFilterOpen(false);
+                console.log("[ACTION] Save filters");
+              }}
+            >
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
