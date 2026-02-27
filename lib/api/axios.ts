@@ -1,43 +1,43 @@
 import axios from "axios";
 
-export const baseURL = "your-api-baseurl.com/api"; // Replace with your actual base URL
+export const AUTH_TOKEN_KEY = "authToken";
+export const RESET_EMAIL_KEY = "resetEmail";
+export const RESET_TOKEN_KEY = "resetToken";
+export const baseURL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://18.144.10.94/api/v1";
 
-const headers = {
-  "Content-Type": "application/json",
-};
-const formDataHeaders = {
-  "Content-Type": "multipart/form-data",
-};
-
-// Create an Axios instance
 export const API = axios.create({
-  baseURL: baseURL,
-  timeout: 10000, // Set a timeout (optional)
-  headers: headers,
+  baseURL,
+  timeout: 15000,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// Request Interceptor
 API.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("authToken"); // Retrieve token from storage
-    if (token) {
-      config.headers.authorization = `Bearer ${token}`;
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-// Response Interceptor
 API.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
-      localStorage.removeItem("authToken"); // Remove token if unauthorized
-      window.location.href = "/auth/login"; // Redirect to login page
+    if (error?.response?.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(RESET_EMAIL_KEY);
+      localStorage.removeItem(RESET_TOKEN_KEY);
+      if (!window.location.pathname.startsWith("/auth/login")) {
+        window.location.href = "/auth/login";
+      }
     }
-    console.log(error);
-    console.log("API Error:", error.response?.data || error);
     return Promise.reject(error);
-  }
+  },
 );

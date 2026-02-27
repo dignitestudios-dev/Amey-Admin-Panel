@@ -12,14 +12,15 @@ interface PublicRouteProps {
 export function PublicRoute({ children }: PublicRouteProps) {
   const router = useRouter();
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  const isHydrated = useSelector((state: RootState) => state.auth.isHydrated);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
+    if (isHydrated && isAuthenticated) {
+      router.replace('/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isHydrated, router]);
 
-  if (isAuthenticated) {
+  if (!isHydrated || isAuthenticated) {
     return null;
   }
 

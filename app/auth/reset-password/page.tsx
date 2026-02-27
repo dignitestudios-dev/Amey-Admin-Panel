@@ -1,20 +1,52 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useMutation } from "@tanstack/react-query";
+import {
+  RESET_EMAIL_KEY,
+  RESET_TOKEN_KEY,
+  resetPassword,
+} from "@/lib/api/auth.api";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resetToken] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+    return localStorage.getItem(RESET_TOKEN_KEY) ?? "";
+  });
   const [error, setError] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    if (!resetToken) {
+      router.replace("/auth/verification");
+    }
+  }, [resetToken, router]);
+
+  const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: resetPassword,
+    onSuccess: () => {
+      localStorage.removeItem(RESET_TOKEN_KEY);
+      localStorage.removeItem(RESET_EMAIL_KEY);
+      router.replace("/auth/login");
+    },
+    onError: (mutationError: Error) => {
+      setError(mutationError.message);
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +58,10 @@ const ResetPassword = () => {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long");
+    if (!passwordPattern.test(password)) {
+      setError(
+        "Password must have at least 8 characters, including uppercase, lowercase, number, and special character.",
+      );
       return;
     }
 
@@ -36,11 +70,13 @@ const ResetPassword = () => {
       return;
     }
 
-    // Reset password logic here
-    console.log("Password reset with:", password);
-    
-    // Redirect to login page
-    router.push("/auth/login");
+    if (!resetToken) {
+      setError("Reset session expired. Please verify OTP again.");
+      router.replace("/auth/verification");
+      return;
+    }
+
+    resetPasswordMutation.mutate({ newPassword: password, resetToken });
   };
 
   return (
@@ -111,8 +147,16 @@ const ResetPassword = () => {
           </div>
         </div>
 
-        <Button type="submit" className="w-full">
-          Reset Password
+        {resetPasswordMutation.isError ? (
+          <p className="text-sm text-red-600">{resetPasswordMutation.error.message}</p>
+        ) : null}
+
+        <p className="text-xs text-gray-500">
+          Use at least 8 characters with one uppercase, one lowercase, one number, and one special character.
+        </p>
+
+        <Button type="submit" className="w-full" disabled={resetPasswordMutation.isPending}>
+          {resetPasswordMutation.isPending ? "Resetting Password..." : "Reset Password"}
         </Button>
 
         <div className="text-center">

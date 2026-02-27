@@ -387,7 +387,7 @@ export function DriversDataTable() {
             </DialogDescription>
           </DialogHeader>
           <div className="px-6 py-5 space-y-5">
-            <div className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm text-black block">Status</label>
               <Select

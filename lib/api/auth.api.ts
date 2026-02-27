@@ -1,47 +1,124 @@
-import { API } from './axios';
+import axios from "axios";
+import { API, RESET_EMAIL_KEY, RESET_TOKEN_KEY } from "./axios";
 
-// Login API call
-export const login = async (credentials: any) => {
-  const response = await API.post('/auth/login', credentials);
-  // Store token in localStorage (handled by interceptor, but can be done here too)
-  if (response.data.token) {
-    localStorage.setItem('authToken', response.data.token);
+export { RESET_EMAIL_KEY, RESET_TOKEN_KEY };
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+interface LoginData {
+  token: string;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  data: LoginData;
+}
+
+interface BaseApiResponse<TData = null> {
+  success: boolean;
+  message: string;
+  data: TData;
+}
+
+interface VerifyResetOtpData {
+  token?: string;
+  resetToken?: string;
+  accessToken?: string;
+}
+
+export interface SendResetOtpPayload {
+  email: string;
+}
+
+export interface VerifyResetOtpPayload {
+  email: string;
+  otpCode: string;
+}
+
+export interface ResetPasswordPayload {
+  newPassword: string;
+  resetToken: string;
+}
+
+const getApiErrorMessage = (error: unknown): string => {
+  if (axios.isAxiosError(error)) {
+    return (
+      (error.response?.data as { message?: string } | undefined)?.message ||
+      "Unable to login. Please verify credentials and try again."
+    );
   }
-  return response.data;
+
+  return "Something went wrong. Please try again.";
 };
 
-// Register API call
-export const register = async (credentials: any) => {
-  const response = await API.post('/auth/register', credentials);
-  if (response.data.token) {
-    localStorage.setItem('authToken', response.data.token);
-  }
-  return response.data;
-};
-
-// Logout API call
-export const logout = async () => {
+export const loginAdmin = async (
+  credentials: LoginPayload,
+): Promise<LoginResponse> => {
   try {
-    await API.post('/auth/logout');
+    const response = await API.post<LoginResponse>("/admin/login", credentials);
+    return response.data;
   } catch (error) {
-    console.error('Logout error:', error);
-  } finally {
-    // Always remove token locally
-    localStorage.removeItem('authToken');
+    throw new Error(getApiErrorMessage(error));
   }
 };
 
-// Get current user profile
-export const getProfile = async () => {
-  const response = await API.get('/auth/profile');
-  return response.data;
+export const sendResetOtp = async (
+  payload: SendResetOtpPayload,
+): Promise<BaseApiResponse> => {
+  try {
+    const response = await API.post<BaseApiResponse>("/admin/send-reset-otp", payload);
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error));
+  }
 };
 
-// Refresh token (if needed)
-export const refreshToken = async () => {
-  const response = await API.post('/auth/refresh');
-  if (response.data.token) {
-    localStorage.setItem('authToken', response.data.token);
+export const verifyResetOtp = async (
+  payload: VerifyResetOtpPayload,
+): Promise<{ message: string; token: string }> => {
+  try {
+    const response = await API.post<BaseApiResponse<VerifyResetOtpData>>(
+      "/admin/verify-reset-otp",
+      payload,
+    );
+
+    const token =
+      response.data?.data?.token ||
+      response.data?.data?.resetToken ||
+      response.data?.data?.accessToken;
+
+    if (!token) {
+      throw new Error("Reset token was not returned by server.");
+    }
+
+    return {
+      message: response.data.message,
+      token,
+    };
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error));
   }
-  return response.data;
+};
+
+export const resetPassword = async (
+  payload: ResetPasswordPayload,
+): Promise<BaseApiResponse> => {
+  try {
+    const response = await API.post<BaseApiResponse>(
+      "/admin/reset-password",
+      { newPassword: payload.newPassword },
+      {
+        headers: {
+          Authorization: `Bearer ${payload.resetToken}`,
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error));
+  }
 };

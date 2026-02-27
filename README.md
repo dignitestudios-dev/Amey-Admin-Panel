@@ -16,6 +16,23 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Environment
+
+Set API base URL in `.env.local`:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://18.144.10.94/api/v1
+```
+
+## Auth Integration
+
+- Login API wired to `POST /admin/login` using TanStack Query mutation.
+- Realtime client validation mirrors backend schema:
+    - `email`: required, valid email format
+    - `password`: required, min 8 chars, max 100 chars
+- Auth token is persisted in `localStorage` and attached via Axios interceptor.
+- Public and protected routes wait for auth hydration before redirecting.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

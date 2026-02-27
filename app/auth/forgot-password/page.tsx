@@ -6,20 +6,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useMutation } from "@tanstack/react-query";
+import { RESET_EMAIL_KEY, sendResetOtp } from "@/lib/api/auth.api";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
+
+  const sendOtpMutation = useMutation({
+    mutationFn: sendResetOtp,
+    onSuccess: () => {
+      localStorage.setItem(RESET_EMAIL_KEY, email.trim());
+      router.push("/auth/verification");
+    },
+    onError: (mutationError: Error) => {
+      setError(mutationError.message);
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Call the forgot password function
-    handleForgotPassword();
-  };
-
-  const handleForgotPassword = () => {
-    // Function logic - redirects to verification route
-    router.push("/auth/verification");
+    setError("");
+    sendOtpMutation.mutate({ email: email.trim() });
   };
 
   return (
@@ -27,7 +36,7 @@ const ForgotPassword = () => {
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Forgot Password</h2>
         <p className="text-gray-600">
-          Enter your email address and we'll send you an OTP to reset your password
+          Enter your email address and we will send you an OTP to reset your password
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -43,8 +52,10 @@ const ForgotPassword = () => {
           />
         </div>
 
-        <Button type="submit" className="w-full">
-          Send Reset Link
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+        <Button type="submit" className="w-full" disabled={sendOtpMutation.isPending}>
+          {sendOtpMutation.isPending ? "Sending OTP..." : "Send Reset OTP"}
         </Button>
 
         <div className="text-center">

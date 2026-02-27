@@ -1,84 +1,86 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { StatCards } from "./components/stat-cards"
-import { DataTable } from "./components/data-table"
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { DataTable } from "./components/data-table";
+import {
+  getPassengers,
+  type PassengerStatus,
+} from "@/lib/api/users.api";
 
-import initialUsersData from "./data.json"
-
-interface User {
-  id: number
-  name: string
-  email: string
-  avatar: string
-  role: string
-  plan: string
-  billing: string
-  status: string
-  joinedDate: string
-  lastLogin: string
-}
-
-interface UserFormValues {
-  name: string
-  email: string
-  role: string
-  plan: string
-  billing: string
-  status: string
+interface UserFilters {
+  status: "all" | PassengerStatus;
+  date: string;
+  rideCount: string;
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(initialUsersData)
+  const [filters, setFilters] = useState<UserFilters>({
+    status: "all",
+    date: "",
+    rideCount: "",
+  });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
-  const generateAvatar = (name: string) => {
-    const names = name.split(" ")
-    if (names.length >= 2) {
-      return `${names[0][0]}${names[1][0]}`.toUpperCase()
+  const queryParams = useMemo(() => {
+    return {
+      status: filters.status === "all" ? undefined : filters.status,
+      date: filters.date || undefined,
+      rideCount: filters.rideCount ? Number(filters.rideCount) : undefined,
+      page,
+      limit,
+    };
+  }, [filters, page, limit]);
+
+  const passengersQuery = useQuery({
+    queryKey: ["passengers", queryParams],
+    queryFn: () => getPassengers(queryParams),
+    placeholderData: (previousData) => previousData,
+  });
+
+  const passengers = passengersQuery.data?.passengers ?? [];
+  const pagination = passengersQuery.data?.pagination;
+
+  const handleFilterChange = (nextFilters: UserFilters) => {
+    setFilters(nextFilters);
+    setPage(1);
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    if (!pagination) {
+      return;
     }
-    return name.substring(0, 2).toUpperCase()
-  }
 
-  const handleAddUser = (userData: UserFormValues) => {
-    const newUser: User = {
-      id: Math.max(...users.map(u => u.id)) + 1,
-      name: userData.name,
-      email: userData.email,
-      avatar: generateAvatar(userData.name),
-      role: userData.role,
-      plan: userData.plan,
-      billing: userData.billing,
-      status: userData.status,
-      joinedDate: new Date().toISOString().split('T')[0],
-      lastLogin: new Date().toISOString().split('T')[0],
+    if (nextPage < 1 || nextPage > pagination.totalPages) {
+      return;
     }
-    setUsers(prev => [newUser, ...prev])
-  }
 
-  const handleDeleteUser = (id: number) => {
-    setUsers(prev => prev.filter(user => user.id !== id))
-  }
+    setPage(nextPage);
+  };
 
-  const handleEditUser = (user: User) => {
-    // For now, just log the user to edit
-    // In a real app, you'd open an edit dialog
-    console.log("Edit user:", user)
-  }
+  const handlePageSizeChange = (nextLimit: number) => {
+    setLimit(nextLimit);
+    setPage(1);
+  };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="@container/main px-4 lg:px-6">
-        <StatCards />
-      </div>
-      
-      <div className="@container/main px-4 lg:px-6 mt-8 lg:mt-12">
-        <DataTable 
-          users={users}
-          onDeleteUser={handleDeleteUser}
-          onEditUser={handleEditUser}
-          onAddUser={handleAddUser}
-        />
-      </div>
+    <div className="flex flex-col gap-4 @container/main px-4 lg:px-6 mt-2">
+      <DataTable
+        users={passengers}
+        filters={filters}
+        page={pagination?.page ?? page}
+        limit={pagination?.limit ?? limit}
+        total={pagination?.total ?? 0}
+        totalPages={pagination?.totalPages ?? 1}
+        isLoading={passengersQuery.isLoading}
+        isFetching={passengersQuery.isFetching}
+        error={passengersQuery.error?.message ?? null}
+        onFilterChange={handleFilterChange}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        onRefresh={() => passengersQuery.refetch()}
+      />
     </div>
-  )
+  );
 }

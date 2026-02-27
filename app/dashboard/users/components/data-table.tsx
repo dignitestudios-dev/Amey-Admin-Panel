@@ -1,27 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  ChevronDown,
-  EllipsisVertical,
-  Eye,
-  Pencil,
-  Trash2,
-  Download,
-} from "lucide-react";
-
+import { CalendarDays, RefreshCw, Users } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -38,296 +21,224 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserFormDialog } from "./user-form-dialog";
+import type { Passenger, PassengerStatus } from "@/lib/api/users.api";
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  avatar: string;
-  role: string;
-  plan: string;
-  billing: string;
-  status: string;
-  joinedDate: string;
-  lastLogin: string;
-}
-
-interface UserFormValues {
-  name: string;
-  email: string;
-  role: string;
-  plan: string;
-  billing: string;
-  status: string;
+interface UserFilters {
+  status: "all" | PassengerStatus;
+  date: string;
+  rideCount: string;
 }
 
 interface DataTableProps {
-  users: User[];
-  onDeleteUser: (id: number) => void;
-  onEditUser: (user: User) => void;
-  onAddUser: (userData: UserFormValues) => void;
+  users: Passenger[];
+  filters: UserFilters;
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  isLoading: boolean;
+  isFetching: boolean;
+  error: string | null;
+  onFilterChange: (filters: UserFilters) => void;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (limit: number) => void;
+  onRefresh: () => void;
 }
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+};
+
+const getStatusClasses = (status: PassengerStatus) => {
+  switch (status) {
+    case "approved":
+      return "text-green-700 bg-green-700/10 border-green-700/10";
+    case "pending":
+      return "text-amber-700 bg-amber-700/10 border-amber-700/10";
+    case "rejected":
+      return "text-red-700 bg-red-700/10 border-red-700/10";
+    case "deleted":
+      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+    default:
+      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+  }
+};
 
 export function DataTable({
   users,
-  onDeleteUser,
-  onEditUser,
-  onAddUser,
+  filters,
+  page,
+  limit,
+  total,
+  totalPages,
+  isLoading,
+  isFetching,
+  error,
+  onFilterChange,
+  onPageChange,
+  onPageSizeChange,
+  onRefresh,
 }: DataTableProps) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(Math.ceil(users.length / 10));
+  const hasFilters =
+    filters.status !== "all" || Boolean(filters.date) || Boolean(filters.rideCount);
 
-  useEffect(() => {
-    setTotalPages(Math.ceil(users.length / pageSize));
-  }, [users.length, pageSize]);
-
-  const handleFilterChange = (filterType: string, value: string) => {
-    console.log(`${filterType}: ${value}`);
-  };
-
-  const handlePageSizeChange = (value: string) => {
-    const newPageSize = Number(value);
-    const newTotalPages = Math.ceil(users.length / newPageSize);
-    setPageSize(newPageSize);
-    setTotalPages(newTotalPages);
-    if (currentPage > newTotalPages) {
-      setCurrentPage(newTotalPages);
-    }
-    console.log(`Page size changed to ${value}, current page ${currentPage}`);
-  };
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      const newPage = currentPage - 1;
-      setCurrentPage(newPage);
-      console.log(`Page changed to ${newPage}`);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      const newPage = currentPage + 1;
-      setCurrentPage(newPage);
-      console.log(`Page changed to ${newPage}`);
-      // API Call
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "text-green-600 bg-green-50";
-      case "Pending":
-        return "text-orange-600 bg-orange-50";
-      case "Error":
-        return "text-red-600 bg-red-50";
-      case "Inactive":
-        return "text-gray-600 bg-gray-50";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "Admin":
-        return "text-red-600 bg-red-50";
-      case "Editor":
-        return "text-blue-600 bg-blue-50";
-      case "Author":
-        return "text-yellow-600 bg-yellow-50";
-      case "Maintainer":
-        return "text-green-600 bg-green-50";
-      case "Subscriber":
-        return "text-purple-600 bg-purple-50";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
+  const clearFilters = () => {
+    onFilterChange({
+      status: "all",
+      date: "",
+      rideCount: "",
+    });
   };
 
   return (
     <div className="w-full space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <span></span>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" className="cursor-pointer">
-            <Download className="mr-2 size-4" />
-            Export
-          </Button>
-          <UserFormDialog onAddUser={onAddUser} />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-black">Users Management</h2>
+          <p className="text-sm text-gray-500">Passengers data with server-side filtering and pagination</p>
+        </div>
+        <Button
+          variant="outline"
+          className="w-fit"
+          onClick={onRefresh}
+          disabled={isFetching}
+        >
+          <RefreshCw className={`mr-2 size-4 ${isFetching ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      </div>
+
+      <div className="rounded-lg border bg-white p-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="space-y-1.5">
+            <Label>Status</Label>
+            <Select
+              value={filters.status}
+              onValueChange={(value) =>
+                onFilterChange({
+                  ...filters,
+                  status: value as UserFilters["status"],
+                })
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="deleted">Deleted</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Registration Date</Label>
+            <div className="relative">
+              <CalendarDays className="pointer-events-none absolute left-3 top-2.5 size-4 text-gray-400" />
+              <Input
+                type="date"
+                value={filters.date}
+                onChange={(e) => onFilterChange({ ...filters, date: e.target.value })}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Minimum Rides</Label>
+            <Input
+              type="number"
+              min={0}
+              placeholder="e.g. 7"
+              value={filters.rideCount}
+              onChange={(e) => onFilterChange({ ...filters, rideCount: e.target.value })}
+            />
+          </div>
+
+          <div className="flex items-end gap-2">
+            <Button variant="outline" onClick={clearFilters} disabled={!hasFilters}>
+              Clear
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-4 sm:gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="role-filter" className="text-sm font-medium">
-            Role
-          </Label>
-          <Select onValueChange={(value) => handleFilterChange("role", value)}>
-            <SelectTrigger className="cursor-pointer w-full" id="role-filter">
-              <SelectValue placeholder="Select Role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="Admin">Admin</SelectItem>
-              <SelectItem value="Author">Author</SelectItem>
-              <SelectItem value="Editor">Editor</SelectItem>
-              <SelectItem value="Maintainer">Maintainer</SelectItem>
-              <SelectItem value="Subscriber">Subscriber</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="plan-filter" className="text-sm font-medium">
-            Plan
-          </Label>
-          <Select onValueChange={(value) => handleFilterChange("plan", value)}>
-            <SelectTrigger className="cursor-pointer w-full" id="plan-filter">
-              <SelectValue placeholder="Select Plan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Plans</SelectItem>
-              <SelectItem value="Basic">Basic</SelectItem>
-              <SelectItem value="Professional">Professional</SelectItem>
-              <SelectItem value="Enterprise">Enterprise</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="status-filter" className="text-sm font-medium">
-            Status
-          </Label>
-          <Select
-            onValueChange={(value) => handleFilterChange("status", value)}
-          >
-            <SelectTrigger className="cursor-pointer w-full" id="status-filter">
-              <SelectValue placeholder="Select Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Error">Error</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="rounded-md border">
+      <div className="rounded-lg border bg-white">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Plan</TableHead>
-              <TableHead>Billing</TableHead>
+              <TableHead>Passenger</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-center">Total Rides</TableHead>
+              <TableHead className="text-right">Registration Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.length ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  Loading passengers...
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-red-600">
+                  {error}
+                </TableCell>
+              </TableRow>
+            ) : users.length > 0 ? (
               users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs font-medium">
-                          {user.avatar}
+                          {getInitials(user.name)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
                         <span className="font-medium">{user.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {user.email}
-                        </span>
+                        <span className="text-sm text-muted-foreground">{user.email}</span>
                       </div>
                     </div>
                   </TableCell>
+                  <TableCell>{user.phone || "-"}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={getRoleColor(user.role)}
-                    >
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-medium">{user.plan}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{user.billing}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={getStatusColor(user.status)}
-                    >
+                    <Badge className={`rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusClasses(user.status)}`}>
                       {user.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 cursor-pointer"
-                      >
-                        <Eye className="size-4" />
-                        <span className="sr-only">View user</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 cursor-pointer"
-                        onClick={() => onEditUser(user)}
-                      >
-                        <Pencil className="size-4" />
-                        <span className="sr-only">Edit user</span>
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 cursor-pointer"
-                          >
-                            <EllipsisVertical className="size-4" />
-                            <span className="sr-only">More actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="cursor-pointer">
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            Send Email
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            Reset Password
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            variant="destructive"
-                            className="cursor-pointer"
-                            onClick={() => onDeleteUser(user.id)}
-                          >
-                            <Trash2 className="mr-2 size-4" />
-                            Delete User
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
+                  <TableCell className="text-center font-medium">{user.totalRides}</TableCell>
+                  <TableCell className="text-right">{formatDate(user.regDate)}</TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  No results.
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <div className="inline-flex items-center gap-2">
+                    <Users className="size-4" />
+                    No passengers found for these filters.
+                  </div>
                 </TableCell>
               </TableRow>
             )}
@@ -335,50 +246,41 @@ export function DataTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="flex items-center space-x-2">
-          <Label htmlFor="page-size" className="text-sm font-medium">
-            Show
-          </Label>
-          <Select
-            value={pageSize.toString()}
-            onValueChange={handlePageSizeChange}
-          >
-            <SelectTrigger className="w-20 cursor-pointer" id="page-size">
-              <SelectValue placeholder={pageSize.toString()} />
-            </SelectTrigger>
-            <SelectContent side="top">
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="12">12</SelectItem>
-              <SelectItem value="30">30</SelectItem>
-              <SelectItem value="40">40</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center space-x-6 lg:space-x-8">
-          <div className="hidden sm:flex items-center space-x-2">
-            <p className="text-sm font-medium">Page</p>
-            <strong className="text-sm">
-              {currentPage} of {totalPages}
-            </strong>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
+        <div className="text-sm text-muted-foreground">Total: {total} passengers</div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="page-size">Rows</Label>
+            <Select value={String(limit)} onValueChange={(value) => onPageSizeChange(Number(value))}>
+              <SelectTrigger id="page-size" className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="30">30</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex items-center space-x-2">
+
+          <div className="text-sm">Page {page} of {totalPages || 1}</div>
+
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={handlePreviousPage}
-              disabled={currentPage <= 1}
-              className="cursor-pointer"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1 || isFetching}
             >
               Previous
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={handleNextPage}
-              disabled={currentPage >= totalPages}
-              className="cursor-pointer"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= (totalPages || 1) || isFetching}
             >
               Next
             </Button>
