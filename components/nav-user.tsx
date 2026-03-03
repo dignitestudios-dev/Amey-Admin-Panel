@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/sidebar";
 
 export function NavUser({
-  user,
+  user: _user,
 }: {
   user: {
     name: string;
@@ -63,10 +63,7 @@ export function NavUser({
                 <Logo size={28} />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="text-gray-400 truncate text-xs">
-                  {user.email}
-                </span>
+                <span className="truncate font-medium">Amey Admin</span>
               </div>
               <EllipsisVertical className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -83,10 +80,7 @@ export function NavUser({
                   <Logo size={28} />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    {user.email}
-                  </span>
+                  <span className="truncate font-medium">Amey Admin</span>
                 </div>
               </div>
             </DropdownMenuLabel>

@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Amey - Admin Panel",
-  description: "Rides",
+  title: "Amey - Admin Dashboard",
+  description: "Amey - manage amey app from the admin panel",
   icons: {
     icon: "/images/logo.webp",
   },
