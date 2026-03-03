@@ -48,7 +48,7 @@ const data = {
       label: "Manage",
       items: [
         {
-          title: "Users",
+          title: "Passengers",
           url: "/dashboard/users",
           icon: Users,
         },
@@ -61,11 +61,6 @@ const data = {
           title: "Rides",
           url: "/dashboard/rides",
           icon: Navigation,
-        },
-        {
-          title: "Withdrawal",
-          url: "/dashboard/withdrawals",
-          icon: CreditCard,
         },
       ],
     },
