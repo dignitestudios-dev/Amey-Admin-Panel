@@ -1,7 +1,7 @@
 "use client";
 
 import { TrendingUp } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { CartesianGrid, Label, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import {
   Card,
@@ -20,40 +20,53 @@ import {
 
 export const description = "A stacked area chart";
 
-const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
-];
+export interface RidesLinePoint {
+  month: string;
+  totalRides: number;
+}
+
+interface ChartAreaStackedProps {
+  data: RidesLinePoint[];
+  year: number;
+}
 
 const chartConfig = {
-  desktop: {
-    label: "Desktop",
+  totalRides: {
+    label: "Rides",
     color: "var(--chart-1)",
-  },
-  mobile: {
-    label: "Mobile",
-    color: "var(--chart-2)",
   },
 } satisfies ChartConfig;
 
-export function ChartAreaStacked() {
+const calculateTrend = (data: RidesLinePoint[]): string => {
+  if (data.length < 2) {
+    return "0";
+  }
+
+  const first = data[0]?.totalRides ?? 0;
+  const last = data[data.length - 1]?.totalRides ?? 0;
+
+  if (first === 0) {
+    return last > 0 ? "100" : "0";
+  }
+
+  return (((last - first) / first) * 100).toFixed(1);
+};
+
+export function ChartAreaStacked({ data, year }: ChartAreaStackedProps) {
+  const totalRides = data.reduce((sum, item) => sum + item.totalRides, 0);
+  const trend = calculateTrend(data);
+
   return (
-    <Card>
+    <Card className="border-primary/10 transition-colors hover:border-primary/30">
       <CardHeader>
-        <CardTitle>Area Chart - Stacked</CardTitle>
-        <CardDescription>
-          Showing total visitors for the last 6 months
-        </CardDescription>
+        <CardTitle>Rides Activity</CardTitle>
+        <CardDescription>Monthly rides trend for {year}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
-          <AreaChart
+        <ChartContainer config={chartConfig} className="h-[320px] w-full">
+          <LineChart
             accessibilityLayer
-            data={chartData}
+            data={data}
             margin={{
               left: 12,
               right: 12,
@@ -67,37 +80,44 @@ export function ChartAreaStacked() {
               tickMargin={8}
               tickFormatter={(value) => value.slice(0, 3)}
             />
+            <YAxis
+              orientation="right"
+              tickLine={false}
+              axisLine={false}
+              width={56}
+              tickMargin={8}
+            >
+              <Label
+                value="Rides"
+                angle={-90}
+                position="insideRight"
+                offset={-2}
+                className="fill-muted-foreground text-xs"
+              />
+            </YAxis>
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent indicator="dot" />}
             />
-            <Area
-              dataKey="mobile"
-              type="natural"
-              fill="var(--color-mobile)"
-              fillOpacity={0.4}
-              stroke="var(--color-mobile)"
-              stackId="a"
+            <Line
+              dataKey="totalRides"
+              type="monotone"
+              stroke="var(--color-totalRides)"
+              strokeWidth={3}
+              dot={{ r: 3, fill: "var(--color-totalRides)" }}
+              activeDot={{ r: 5 }}
             />
-            <Area
-              dataKey="desktop"
-              type="natural"
-              fill="var(--color-desktop)"
-              fillOpacity={0.4}
-              stroke="var(--color-desktop)"
-              stackId="a"
-            />
-          </AreaChart>
+          </LineChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="border-t border-border/50 pt-4">
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
             <div className="flex items-center gap-2 leading-none font-medium">
-              Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+              {trend.startsWith("-") ? "Down" : "Up"} {Math.abs(Number(trend))}% from start of year <TrendingUp className="h-4 w-4" />
             </div>
             <div className="text-muted-foreground flex items-center gap-2 leading-none">
-              January - June 2024
+              Total rides: {totalRides.toLocaleString("en-US")}
             </div>
           </div>
         </div>

@@ -21,6 +21,32 @@ export interface DashboardCountsParams {
   endDate?: string;
 }
 
+export interface DashboardRidesByMonth {
+  month: number;
+  totalRides: number;
+}
+
+export interface DashboardRevenueByMonth {
+  month: number;
+  totalRevenue: number;
+  platformCommission: number;
+  netRevenue: number;
+}
+
+export interface DashboardStats {
+  ridesByMonth: DashboardRidesByMonth[];
+  revenueByMonth: DashboardRevenueByMonth[];
+}
+
+export interface DashboardStatsResponse {
+  message: string;
+  data: DashboardStats;
+}
+
+export interface DashboardStatsParams {
+  year: number;
+}
+
 const getApiErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
     return (
@@ -37,6 +63,19 @@ export const getDashboardCounts = async (
 ): Promise<DashboardCountsResponse> => {
   try {
     const response = await API.get<DashboardCountsResponse>("/admin/dashboard-counts", {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error));
+  }
+};
+
+export const getDashboardStats = async (
+  params: DashboardStatsParams,
+): Promise<DashboardStatsResponse> => {
+  try {
+    const response = await API.get<DashboardStatsResponse>("/admin/dashboard-stats", {
       params,
     });
     return response.data;

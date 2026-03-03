@@ -16,10 +16,8 @@ import { AUTH_TOKEN_KEY } from "@/lib/api/axios";
 
 const emailSchema = z.object({
   email: z
-    .string({
-      required_error: "Email is required",
-      invalid_type_error: "Email must be string",
-    })
+    .string()
+    .min(1, "Email is required")
     .email("Invalid email format"),
 });
 

@@ -22,7 +22,7 @@ export default function RootLayout({
             {/* <!-- ===== Common Grid Shape Start ===== --> */}
             <GridShape />
             <div className="flex flex-col items-center max-w-xs">
-              <Logo size={100} color="#ffffff" />
+              <Logo size={100} />
               <h1 className="text-white text-4xl font-semibold">Admin Panel</h1>
               <p className="text-center text-gray-400 mt-2">
                 Welcome to the Admin Panel. Please Sign in to Continue.

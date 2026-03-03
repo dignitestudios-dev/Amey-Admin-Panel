@@ -12,12 +12,29 @@ import {
   Users,
   UserRoundCheck,
 } from "lucide-react";
+import { ChartAreaStacked } from "@/components/charts-and-graphs/ChartAreaStacked";
+import { ChartBarMultiple } from "@/components/charts-and-graphs/ChartBarMultiple";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getDashboardCounts, type DashboardCounts } from "@/lib/api/dashboard.api";
+import { getDashboardCounts, getDashboardStats, type DashboardCounts } from "@/lib/api/dashboard.api";
+
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
 
 const statsConfig = [
   {
@@ -79,11 +96,15 @@ const formatCurrency = (amount: number) =>
   }).format(amount);
 
 export default function DashboardPage() {
+  const currentYear = new Date().getFullYear();
   const [draftStartDate, setDraftStartDate] = useState("");
   const [draftEndDate, setDraftEndDate] = useState("");
   const [appliedStartDate, setAppliedStartDate] = useState("");
   const [appliedEndDate, setAppliedEndDate] = useState("");
+  const [draftYear, setDraftYear] = useState(String(currentYear));
+  const [appliedYear, setAppliedYear] = useState(currentYear);
   const [dateError, setDateError] = useState<string | null>(null);
+  const [yearError, setYearError] = useState<string | null>(null);
 
   const dashboardCountsQuery = useQuery({
     queryKey: ["dashboard-counts", appliedStartDate, appliedEndDate],
@@ -94,7 +115,36 @@ export default function DashboardPage() {
       }),
   });
 
+  const dashboardStatsQuery = useQuery({
+    queryKey: ["dashboard-stats", appliedYear],
+    queryFn: () => getDashboardStats({ year: appliedYear }),
+  });
+
   const counts = dashboardCountsQuery.data?.data;
+  const dashboardStats = dashboardStatsQuery.data?.data;
+
+  const ridesByMonthMap = new Map(
+    (dashboardStats?.ridesByMonth ?? []).map((item) => [item.month, item.totalRides]),
+  );
+
+  const revenueByMonthMap = new Map(
+    (dashboardStats?.revenueByMonth ?? []).map((item) => [item.month, item]),
+  );
+
+  const ridesLineData = monthNames.map((month, index) => ({
+    month,
+    totalRides: ridesByMonthMap.get(index + 1) ?? 0,
+  }));
+
+  const revenueBarData = monthNames.map((month, index) => {
+    const monthRevenue = revenueByMonthMap.get(index + 1);
+    return {
+      month,
+      totalRevenue: monthRevenue?.totalRevenue ?? 0,
+      platformCommission: monthRevenue?.platformCommission ?? 0,
+      netRevenue: monthRevenue?.netRevenue ?? 0,
+    };
+  });
 
   const handleApplyDateFilter = () => {
     const hasStartDate = Boolean(draftStartDate);
@@ -123,6 +173,24 @@ export default function DashboardPage() {
     setDraftEndDate("");
     setAppliedStartDate("");
     setAppliedEndDate("");
+  };
+
+  const handleApplyYearFilter = () => {
+    const parsedYear = Number.parseInt(draftYear, 10);
+
+    if (!Number.isInteger(parsedYear) || parsedYear < 2000 || parsedYear > 2100) {
+      setYearError("Enter a valid year between 2000 and 2100.");
+      return;
+    }
+
+    setYearError(null);
+    setAppliedYear(parsedYear);
+  };
+
+  const handleResetYearFilter = () => {
+    setYearError(null);
+    setDraftYear(String(currentYear));
+    setAppliedYear(currentYear);
   };
 
   return (
@@ -213,6 +281,83 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <Card className="border-primary/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Charts Filter</CardTitle>
+          <CardDescription>Choose a year to view monthly rides and revenue trends.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="space-y-1.5 md:col-span-1">
+              <Label htmlFor="dashboard-year">Year</Label>
+              <Input
+                id="dashboard-year"
+                type="number"
+                min={2000}
+                max={2100}
+                value={draftYear}
+                onChange={(event) => setDraftYear(event.target.value)}
+              />
+            </div>
+            <div className="flex items-end gap-2 md:col-span-3">
+              <Button onClick={handleApplyYearFilter} disabled={dashboardStatsQuery.isFetching}>
+                Apply
+              </Button>
+              <Button variant="outline" onClick={handleResetYearFilter} disabled={dashboardStatsQuery.isFetching}>
+                Current Year
+              </Button>
+            </div>
+          </div>
+          {yearError ? <p className="mt-2 text-sm text-destructive">{yearError}</p> : null}
+        </CardContent>
+      </Card>
+
+      {dashboardStatsQuery.error ? (
+        <Card className="border-destructive/20">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+            <p className="text-sm text-destructive">
+              {dashboardStatsQuery.error instanceof Error
+                ? dashboardStatsQuery.error.message
+                : "Unable to load chart data."}
+            </p>
+            <Button onClick={() => dashboardStatsQuery.refetch()} disabled={dashboardStatsQuery.isFetching}>
+              {dashboardStatsQuery.isFetching && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="grid gap-4 gricols-1">
+        {dashboardStatsQuery.isLoading ? (
+          <>
+            <Card className="border-primary/10">
+              <CardHeader>
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-4 w-52" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-[320px] w-full" />
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10">
+              <CardHeader>
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-4 w-52" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-[320px] w-full" />
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <ChartAreaStacked data={ridesLineData} year={appliedYear} />
+            <ChartBarMultiple data={revenueBarData} year={appliedYear} />
+          </>
+        )}
       </div>
     </div>
   );

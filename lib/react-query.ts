@@ -2,11 +2,26 @@ import { QueryClient } from "@tanstack/react-query";
 
 const isServer = typeof window === "undefined";
 
+type AxiosLikeError = {
+  response?: {
+    status?: number;
+  };
+};
+
+const getStatusCode = (error: unknown): number | undefined => {
+  if (!error || typeof error !== "object") {
+    return undefined;
+  }
+
+  const maybeAxiosError = error as AxiosLikeError;
+  return maybeAxiosError.response?.status;
+};
+
 const shouldRetryRequest = (
   failureCount: number,
-  error: { response?: { status?: number } } | null,
+  error: unknown,
 ) => {
-  const statusCode = error?.response?.status;
+  const statusCode = getStatusCode(error);
 
   if (statusCode && statusCode >= 400 && statusCode < 500 && statusCode !== 429) {
     return false;

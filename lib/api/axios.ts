@@ -4,7 +4,7 @@ export const AUTH_TOKEN_KEY = "authToken";
 export const RESET_EMAIL_KEY = "resetEmail";
 export const RESET_TOKEN_KEY = "resetToken";
 export const baseURL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://18.144.10.94/api/v1";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.theameyapp.com/";
 
 export const API = axios.create({
   baseURL,
