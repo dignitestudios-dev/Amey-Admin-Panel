@@ -4,7 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CalendarDays, Download, FileText, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Download,
+  FileText,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,14 +61,19 @@ const formatStatus = (value: string) => {
   if (!value) {
     return "Unknown";
   }
-  
-  return value.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
+
+  return value
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (char) => char.toUpperCase());
 };
 
 const getStatusClassName = (status: string) => {
   const normalizedStatus = status.toLowerCase();
 
-  if (normalizedStatus === "approved" || normalizedStatus === "admin-approved") {
+  if (
+    normalizedStatus === "approved" ||
+    normalizedStatus === "admin-approved"
+  ) {
     return "text-green-700 bg-green-700/10 border-green-700/20";
   }
 
@@ -81,7 +92,13 @@ const getStatusClassName = (status: string) => {
   return "text-gray-700 bg-gray-700/10 border-gray-700/20";
 };
 
-const ImageCard = ({ title, imageUrl }: { title: string; imageUrl: string }) => {
+const ImageCard = ({
+  title,
+  imageUrl,
+}: {
+  title: string;
+  imageUrl: string;
+}) => {
   if (!imageUrl) {
     return (
       <div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
@@ -105,7 +122,7 @@ const ImageCard = ({ title, imageUrl }: { title: string; imageUrl: string }) => 
       </CardHeader>
       <CardContent className="pt-0">
         <img
-          src={imageUrl}
+          src={"https://myawsameybucket.s3.us-east-1.amazonaws.com/" + imageUrl}
           alt={title}
           className="h-105 w-full rounded-md border object-cover transition-transform duration-200 hover:scale-[1.01]"
         />
@@ -153,7 +170,10 @@ const DriverDetailsSkeleton = () => {
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
-            <div key={`meta-${index}`} className="rounded-lg border p-3 space-y-2">
+            <div
+              key={`meta-${index}`}
+              className="rounded-lg border p-3 space-y-2"
+            >
               <Skeleton className="h-3 w-24" />
               <Skeleton className="h-5 w-full" />
             </div>
@@ -213,7 +233,9 @@ export default function DriverDetailsPage() {
       ]);
       toast.success("Driver approved successfully.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to approve driver.");
+      toast.error(
+        error instanceof Error ? error.message : "Unable to approve driver.",
+      );
     }
   };
 
@@ -240,7 +262,9 @@ export default function DriverDetailsPage() {
       setIsRejectDialogOpen(false);
       setRejectReason("");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to reject driver.");
+      toast.error(
+        error instanceof Error ? error.message : "Unable to reject driver.",
+      );
     }
   };
 
@@ -264,8 +288,13 @@ export default function DriverDetailsPage() {
             <Button variant="outline" asChild>
               <Link href="/dashboard/drivers">Back to drivers</Link>
             </Button>
-            <Button onClick={() => detailsQuery.refetch()} disabled={detailsQuery.isFetching}>
-              {detailsQuery.isFetching && <Loader2 className="mr-2 size-4 animate-spin" />}
+            <Button
+              onClick={() => detailsQuery.refetch()}
+              disabled={detailsQuery.isFetching}
+            >
+              {detailsQuery.isFetching && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               Retry
             </Button>
           </CardContent>
@@ -290,7 +319,9 @@ export default function DriverDetailsPage() {
         </Button>
 
         <div className="flex items-center gap-2">
-          <Badge className={`rounded-full border px-3 py-1 ${getStatusClassName(review.accountStatus)}`}>
+          <Badge
+            className={`rounded-full border px-3 py-1 ${getStatusClassName(review.accountStatus)}`}
+          >
             {formatStatus(review.accountStatus)}
           </Badge>
 
@@ -302,7 +333,9 @@ export default function DriverDetailsPage() {
                 onClick={handleApprove}
                 disabled={isActionPending || detailsQuery.isFetching}
               >
-                {approveMutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+                {approveMutation.isPending && (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                )}
                 Approve
               </Button>
               <Button
@@ -311,7 +344,9 @@ export default function DriverDetailsPage() {
                 onClick={() => setIsRejectDialogOpen(true)}
                 disabled={isActionPending || detailsQuery.isFetching}
               >
-                {rejectMutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+                {rejectMutation.isPending && (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                )}
                 Reject
               </Button>
             </>
@@ -329,11 +364,15 @@ export default function DriverDetailsPage() {
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">Driver ID</div>
-            <div className="mt-1 text-sm font-medium break-all">{review.driverId || "-"}</div>
+            <div className="mt-1 text-sm font-medium break-all">
+              {review.driverId || "-"}
+            </div>
           </div>
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">Account Status</div>
-            <div className="mt-1 text-sm font-medium">{formatStatus(review.accountStatus)}</div>
+            <div className="mt-1 text-sm font-medium">
+              {formatStatus(review.accountStatus)}
+            </div>
           </div>
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">Submitted Date</div>
@@ -355,25 +394,34 @@ export default function DriverDetailsPage() {
             </div>
           </div>
           <div className="rounded-lg border bg-card p-3">
-            <div className="text-xs text-muted-foreground">Registration Number</div>
+            <div className="text-xs text-muted-foreground">
+              Registration Number
+            </div>
             <div className="mt-1 text-sm font-medium">
               {documents.vehicleRegistration?.registrationNumber || "-"}
             </div>
           </div>
           <div className="rounded-lg border bg-card p-3">
-            <div className="text-xs text-muted-foreground">Registration Expiry</div>
+            <div className="text-xs text-muted-foreground">
+              Registration Expiry
+            </div>
             <div className="mt-1 text-sm font-medium">
-              {formatDate(documents.vehicleRegistration?.registrationExpiryDate || null)}
+              {formatDate(
+                documents.vehicleRegistration?.registrationExpiryDate || null,
+              )}
             </div>
           </div>
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">State / Region</div>
             <div className="mt-1 text-sm font-medium">
-              {documents.vehicleRegistration?.stateOrRegionOfRegistration || "-"}
+              {documents.vehicleRegistration?.stateOrRegionOfRegistration ||
+                "-"}
             </div>
           </div>
           <div className="rounded-lg border bg-card p-3 md:col-span-2 xl:col-span-4">
-            <div className="text-xs text-muted-foreground">Rejection Reason</div>
+            <div className="text-xs text-muted-foreground">
+              Rejection Reason
+            </div>
             <div className="mt-1 text-sm font-medium">
               {review.rejectionReason || "-"}
             </div>
@@ -383,13 +431,22 @@ export default function DriverDetailsPage() {
 
       <Tabs defaultValue="documents" className="space-y-3">
         <TabsList className="h-10 rounded-xl border bg-muted/70 p-1">
-          <TabsTrigger value="documents" className="rounded-lg px-4">Documents</TabsTrigger>
-          <TabsTrigger value="vehicle-photos" className="rounded-lg px-4">Vehicle Photos</TabsTrigger>
-          <TabsTrigger value="summary" className="rounded-lg px-4">Summary</TabsTrigger>
+          <TabsTrigger value="documents" className="rounded-lg px-4">
+            Documents
+          </TabsTrigger>
+          <TabsTrigger value="vehicle-photos" className="rounded-lg px-4">
+            Vehicle Photos
+          </TabsTrigger>
+          <TabsTrigger value="summary" className="rounded-lg px-4">
+            Summary
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="documents" className="space-y-4">
-          <DocumentPair title="Driver License" value={documents.driverLicense} />
+          <DocumentPair
+            title="Driver License"
+            value={documents.driverLicense}
+          />
           <DocumentPair title="Government ID" value={documents.governmentId} />
           <DocumentPair
             title="Vehicle Registration Document"
@@ -402,20 +459,26 @@ export default function DriverDetailsPage() {
           <Card className="border-primary/10">
             <CardHeader>
               <CardTitle>Vehicle Images</CardTitle>
-              <CardDescription>Exterior and interior verification photos.</CardDescription>
+              <CardDescription>
+                Exterior and interior verification photos.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h3 className="mb-3 text-base font-semibold">Exterior Images</h3>
+                <h3 className="mb-3 text-base font-semibold">
+                  Exterior Images
+                </h3>
                 {documents.vehiclePhotos?.exteriorImages?.length ? (
                   <div className="grid gap-3 xl:grid-cols-2">
-                    {documents.vehiclePhotos.exteriorImages.map((imageUrl, index) => (
-                      <ImageCard
-                        key={`ext-${imageUrl}-${index}`}
-                        title={`Exterior ${index + 1}`}
-                        imageUrl={imageUrl}
-                      />
-                    ))}
+                    {documents.vehiclePhotos.exteriorImages.map(
+                      (imageUrl, index) => (
+                        <ImageCard
+                          key={`ext-${imageUrl}-${index}`}
+                          title={`Exterior ${index + 1}`}
+                          imageUrl={imageUrl}
+                        />
+                      ),
+                    )}
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
@@ -425,16 +488,20 @@ export default function DriverDetailsPage() {
               </div>
 
               <div>
-                <h3 className="mb-3 text-base font-semibold">Interior Images</h3>
+                <h3 className="mb-3 text-base font-semibold">
+                  Interior Images
+                </h3>
                 {documents.vehiclePhotos?.interiorImages?.length ? (
                   <div className="grid gap-3 xl:grid-cols-2">
-                    {documents.vehiclePhotos.interiorImages.map((imageUrl, index) => (
-                      <ImageCard
-                        key={`int-${imageUrl}-${index}`}
-                        title={`Interior ${index + 1}`}
-                        imageUrl={imageUrl}
-                      />
-                    ))}
+                    {documents.vehiclePhotos.interiorImages.map(
+                      (imageUrl, index) => (
+                        <ImageCard
+                          key={`int-${imageUrl}-${index}`}
+                          title={`Interior ${index + 1}`}
+                          imageUrl={imageUrl}
+                        />
+                      ),
+                    )}
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
@@ -450,32 +517,45 @@ export default function DriverDetailsPage() {
           <Card className="border-primary/10">
             <CardHeader>
               <CardTitle>Application Summary</CardTitle>
-              <CardDescription>Quick status and submitted document checklist.</CardDescription>
+              <CardDescription>
+                Quick status and submitted document checklist.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex items-center justify-between rounded-md border bg-card p-3 text-sm">
                 <span className="inline-flex items-center gap-2">
                   <FileText className="size-4 text-primary" /> Driver License
                 </span>
-                <span>{documents.driverLicense ? "Submitted" : "Not Submitted"}</span>
+                <span>
+                  {documents.driverLicense ? "Submitted" : "Not Submitted"}
+                </span>
               </div>
               <div className="flex items-center justify-between rounded-md border bg-card p-3 text-sm">
                 <span className="inline-flex items-center gap-2">
                   <FileText className="size-4 text-primary" /> Government ID
                 </span>
-                <span>{documents.governmentId ? "Submitted" : "Not Submitted"}</span>
+                <span>
+                  {documents.governmentId ? "Submitted" : "Not Submitted"}
+                </span>
               </div>
               <div className="flex items-center justify-between rounded-md border bg-card p-3 text-sm">
                 <span className="inline-flex items-center gap-2">
-                  <FileText className="size-4 text-primary" /> Vehicle Registration
+                  <FileText className="size-4 text-primary" /> Vehicle
+                  Registration
                 </span>
-                <span>{documents.vehicleRegistration ? "Submitted" : "Not Submitted"}</span>
+                <span>
+                  {documents.vehicleRegistration
+                    ? "Submitted"
+                    : "Not Submitted"}
+                </span>
               </div>
               <div className="flex items-center justify-between rounded-md border bg-card p-3 text-sm">
                 <span className="inline-flex items-center gap-2">
                   <FileText className="size-4 text-primary" /> Gun License
                 </span>
-                <span>{documents.gunLicense ? "Submitted" : "Not Submitted"}</span>
+                <span>
+                  {documents.gunLicense ? "Submitted" : "Not Submitted"}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -513,7 +593,11 @@ export default function DriverDetailsPage() {
             </Button>
             <Button
               variant="destructive"
-              disabled={!rejectReason.trim() || isActionPending || detailsQuery.isFetching}
+              disabled={
+                !rejectReason.trim() ||
+                isActionPending ||
+                detailsQuery.isFetching
+              }
               onClick={handleReject}
             >
               Reject
