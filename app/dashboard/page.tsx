@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -20,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDashboardCounts, getDashboardStats, type DashboardCounts } from "@/lib/api/dashboard.api";
+import { useRouter } from "next/navigation";
 
 const monthNames = [
   "January",
@@ -43,6 +43,7 @@ const statsConfig = [
     icon: Route,
     getValue: (counts: DashboardCounts) =>
       counts.ridesCount.toLocaleString("en-US"),
+    url: "/dashboard/rides",
   },
   {
     label: "Active Rides",
@@ -50,6 +51,7 @@ const statsConfig = [
     icon: Car,
     getValue: (counts: DashboardCounts) =>
       counts.activeRidesCount.toLocaleString("en-US"),
+    url: "/dashboard/rides?status=in-progress",
   },
   {
     label: "Passengers",
@@ -57,6 +59,7 @@ const statsConfig = [
     icon: Users,
     getValue: (counts: DashboardCounts) =>
       counts.passengersCount.toLocaleString("en-US"),
+    url: "/dashboard/users",
   },
   {
     label: "Drivers",
@@ -64,6 +67,7 @@ const statsConfig = [
     icon: UserRoundCheck,
     getValue: (counts: DashboardCounts) =>
       counts.driversCount.toLocaleString("en-US"),
+    url: "/dashboard/drivers?status=approved",
   },
   {
     label: "Pending Drivers",
@@ -71,6 +75,7 @@ const statsConfig = [
     icon: Clock3,
     getValue: (counts: DashboardCounts) =>
       counts.pendingDriversCount.toLocaleString("en-US"),
+     url: "/dashboard/drivers?status=pending",
   },
   {
     label: "Revenue",
@@ -78,6 +83,7 @@ const statsConfig = [
     icon: CircleDollarSign,
     getValue: (counts: DashboardCounts) =>
       formatCurrency(counts.revenue),
+    url: "/dashboard/reports",
   },
   {
     label: "Platform Commission",
@@ -85,6 +91,7 @@ const statsConfig = [
     icon: CarFront,
     getValue: (counts: DashboardCounts) =>
       formatCurrency(counts.platformCommission),
+    url: "/dashboard/reports",
   },
 ] as const;
 
@@ -105,7 +112,7 @@ export default function DashboardPage() {
   const [appliedYear, setAppliedYear] = useState(currentYear);
   const [dateError, setDateError] = useState<string | null>(null);
   const [yearError, setYearError] = useState<string | null>(null);
-
+  const router = useRouter();
   const dashboardCountsQuery = useQuery({
     queryKey: ["dashboard-counts", appliedStartDate, appliedEndDate],
     queryFn: () =>
@@ -241,7 +248,7 @@ export default function DashboardPage() {
       </Card>
 
       {dashboardCountsQuery.error ? (
-        <Card className="border-destructive/20">
+        <Card  className="border-destructive/20">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
             <p className="text-sm text-destructive">
               {dashboardCountsQuery.error instanceof Error
@@ -258,7 +265,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statsConfig.map((stat) => (
-          <Card key={stat.label} className="border-primary/10 transition-colors hover:border-primary/30">
+          <Card key={stat.label} onClick={()=>router.push(stat.url)} className="cursor-pointer border-primary/10 transition-colors hover:border-primary/30">
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
                 <CardDescription>{stat.label}</CardDescription>

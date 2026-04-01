@@ -98,9 +98,9 @@ export function ChartBarMultiple({ data, year }: ChartBarMultipleProps) {
             >
               <Label
                 value="Dollars"
-                angle={-90}
+                angle={-92}
                 position="insideRight"
-                offset={-2}
+                offset={6}
                 className="fill-muted-foreground text-xs"
               />
             </YAxis>

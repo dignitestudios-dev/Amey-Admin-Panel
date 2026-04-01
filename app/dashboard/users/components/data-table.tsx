@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AccountStatus, Passenger } from "@/lib/api/users.api";
+import { useRouter } from "next/navigation";
 
 interface PassengerFilters {
   status: "all" | AccountStatus;
@@ -119,7 +120,7 @@ export function DataTable({
 }: DataTableProps) {
   const [draftFilters, setDraftFilters] = useState<PassengerFilters>(filters);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-
+  const router = useRouter();
   const activeFilterCount = [
     filters.status,
     filters.date || "all",
@@ -316,7 +317,6 @@ export function DataTable({
                   <TableHead className="text-right">
                     Registration Date
                   </TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -353,7 +353,8 @@ export function DataTable({
                     return (
                       <TableRow
                         key={passenger.id}
-                        className="hover:bg-gray-50 transition-colors"
+                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => router.push(`/dashboard/users/${passenger.id}`)}
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -427,19 +428,7 @@ export function DataTable({
                               </Button>
                             ) : null}
 
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              asChild
-                            >
-                              <Link
-                                href={`/dashboard/users/${passenger.id}`}
-                                title="View passenger"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Link>
-                            </Button>
+                          
                           </div>
                         </TableCell>
                       </TableRow>

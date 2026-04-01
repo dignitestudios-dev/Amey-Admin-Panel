@@ -41,6 +41,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Driver, DriverSecurityType, DriverStatus } from "@/lib/api/drivers.api";
+import { useRouter } from "next/navigation";
+
 
 interface DriverFilters {
   status: "all" | DriverStatus;
@@ -109,7 +111,7 @@ export function DriversDataTable({
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
-
+  const router = useRouter();
   const activeFilterCount = [
     filters.status,
     filters.armedType,
@@ -405,12 +407,11 @@ export function DriversDataTable({
                   <TableHead className="text-center">Rating</TableHead>
                   <TableHead className="text-center">Total Rides</TableHead>
                   <TableHead className="text-right">Earnings</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
+                  <TableRow >
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Loading drivers...
                     </TableCell>
@@ -424,8 +425,9 @@ export function DriversDataTable({
                 ) : drivers.length > 0 ? (
                   drivers.map((driver) => (
                     <TableRow
+                     onClick={()=>router.push(`/dashboard/drivers/${driver.id}`)}
                       key={driver.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
                     >
                       <TableCell>
                         <div>
@@ -454,16 +456,7 @@ export function DriversDataTable({
                       <TableCell className="text-right">
                         <span className="text-black">${driver.earnings.toLocaleString()}</span>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end items-center gap-2">
-                          {renderActionButtons(driver)}
-                          <Button variant="outline" size="sm" className="h-8 w-8 p-0" asChild>
-                            <Link href={`/dashboard/drivers/${driver.id}`} title="View driver">
-                              <Eye className="w-4 h-4" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </TableCell>
+                     
                     </TableRow>
                   ))
                 ) : (

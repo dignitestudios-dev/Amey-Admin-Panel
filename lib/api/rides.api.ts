@@ -31,6 +31,34 @@ export interface Ride {
   dropOffPointName: string;
 }
 
+export interface RideDriverDetails {
+  _id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  accountStatus: string;
+  gender: string;
+  dateOfBirth: string;
+  vehicleType: string;
+  rideSecurityOption: string;
+  avgRating: number;
+  city: string;
+  state: string;
+  address: string;
+  isVerified: boolean;
+  isOnline: boolean;
+  isProfileCompleted: boolean;
+  allowNotifications: boolean;
+  enabledIncomingRides: string[];
+  createdAt: string;
+}
+
+export interface RideReview {
+  rating: number;
+  feedback: string;
+  createdAt: string;
+}
+
 export interface RidePassengerDetails {
   id: string;
   fullName: string;
@@ -72,32 +100,43 @@ export interface RideDetails {
   city: string;
   rideStatus: string;
   rideCategory: string;
+
   pickupPoint: RidePointDetails;
   dropOffPoint: RidePointDetails;
   rideJourneyPoints: RideJourneyPointDetails[];
   childInfo: RideChildInfo[];
+
   rideDistance: number;
   rideBaseTotal: number;
   estimatedFare: number;
   actualFare: number;
+
   rideDate: string;
   startTime: string;
   endTime: string;
   rideDuration: number;
   additionalDuration: number;
+
   vehicleType: string;
   rideSecurity: string;
   specialRequest: string;
   isChildCarSeat: boolean;
+
   createdAt: string;
   updatedAt: string;
-  driverId: string | null;
-  passenger: RidePassengerDetails | null;
+
+  driverId?: RideDriverDetails | any;
+
+  passenger?: RidePassengerDetails | null;
+
+  passengerReview?: RideReview | null;
+  driverReview?: RideReview | null;
 }
 
 export interface RideDetailsResponse {
   message: string;
   ride: RideDetails;
+
 }
 
 export interface RidesPagination {

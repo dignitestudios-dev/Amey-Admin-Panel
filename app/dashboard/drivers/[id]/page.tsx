@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   CalendarDays,
+  ChevronRight,
   Download,
   FileText,
   Loader2,
@@ -134,9 +135,11 @@ const ImageCard = ({
 const DocumentPair = ({
   title,
   value,
+  metadata,
 }: {
   title: string;
   value: DriverDocumentSide | null;
+  metadata?: { label: string; value: string | null | undefined }[];
 }) => {
   return (
     <div className="space-y-3">
@@ -146,9 +149,28 @@ const DocumentPair = ({
           No document submitted.
         </div>
       ) : (
-        <div className="grid gap-3 xl:grid-cols-2">
-          <ImageCard title="Front Side" imageUrl={value.frontSide} />
-          <ImageCard title="Back Side" imageUrl={value.backSide} />
+        <div className="space-y-3">
+          {metadata && metadata.length > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              {metadata.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-md bg-muted/50 px-3 py-2"
+                >
+                  <div className="text-xs text-muted-foreground">
+                    {item.label}
+                  </div>
+                  <div className="mt-0.5 text-sm font-medium">
+                    {item.value || "-"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="grid gap-3 xl:grid-cols-2">
+            <ImageCard title="Front Side" imageUrl={value.frontSide} />
+            <ImageCard title="Back Side" imageUrl={value.backSide} />
+          </div>
         </div>
       )}
     </div>
@@ -199,12 +221,25 @@ const DriverDetailsSkeleton = () => {
   );
 };
 
+// Maps summary item keys to tab value + scroll anchor
+type DocumentKey = "driverLicense" | "vehicleRegistration" | "gunLicense";
+
+const DOCUMENT_TAB_MAP: Record<DocumentKey, { tab: string; anchor: string }> = {
+  driverLicense: { tab: "documents", anchor: "doc-driver-license" },
+  vehicleRegistration: {
+    tab: "documents",
+    anchor: "doc-vehicle-registration",
+  },
+  gunLicense: { tab: "documents", anchor: "doc-arm-license" },
+};
+
 export default function DriverDetailsPage() {
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const driverId = params?.id;
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [activeTab, setActiveTab] = useState("summary");
 
   const detailsQuery = useQuery({
     queryKey: ["driver-application-details", driverId],
@@ -268,6 +303,18 @@ export default function DriverDetailsPage() {
     }
   };
 
+  const navigateToDocument = (key: DocumentKey) => {
+    const { tab, anchor } = DOCUMENT_TAB_MAP[key];
+    setActiveTab(tab);
+    // Wait for tab render then scroll to the section
+    setTimeout(() => {
+      const el = document.getElementById(anchor);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
+  };
+
   if (detailsQuery.isLoading) {
     return <DriverDetailsSkeleton />;
   }
@@ -328,8 +375,8 @@ export default function DriverDetailsPage() {
           {isPendingStatus ? (
             <>
               <Button
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
+                size="lg"
+                className="bg-green-600 cursor-pointer hover:bg-green-700 text-white"
                 onClick={handleApprove}
                 disabled={isActionPending || detailsQuery.isFetching}
               >
@@ -339,7 +386,8 @@ export default function DriverDetailsPage() {
                 Approve
               </Button>
               <Button
-                size="sm"
+                className="cursor-pointer"
+                size="lg"
                 variant="destructive"
                 onClick={() => setIsRejectDialogOpen(true)}
                 disabled={isActionPending || detailsQuery.isFetching}
@@ -371,7 +419,11 @@ export default function DriverDetailsPage() {
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">Account Status</div>
             <div className="mt-1 text-sm font-medium">
-              {formatStatus(review.accountStatus)}
+              <Badge
+                className={`rounded-full border px-3 py-1 ${getStatusClassName(review.accountStatus)}`}
+              >
+                {formatStatus(review.accountStatus)}
+              </Badge>
             </div>
           </div>
           <div className="rounded-lg border bg-card p-3">
@@ -381,36 +433,7 @@ export default function DriverDetailsPage() {
               {formatDate(review.submittedDate)}
             </div>
           </div>
-          <div className="rounded-lg border bg-card p-3">
-            <div className="text-xs text-muted-foreground">License Number</div>
-            <div className="mt-1 text-sm font-medium">
-              {documents.driverLicense?.licenseNumber || "-"}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card p-3">
-            <div className="text-xs text-muted-foreground">License Expiry</div>
-            <div className="mt-1 text-sm font-medium">
-              {formatDate(documents.driverLicense?.expiryDate || null)}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card p-3">
-            <div className="text-xs text-muted-foreground">
-              Registration Number
-            </div>
-            <div className="mt-1 text-sm font-medium">
-              {documents.vehicleRegistration?.registrationNumber || "-"}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card p-3">
-            <div className="text-xs text-muted-foreground">
-              Registration Expiry
-            </div>
-            <div className="mt-1 text-sm font-medium">
-              {formatDate(
-                documents.vehicleRegistration?.registrationExpiryDate || null,
-              )}
-            </div>
-          </div>
+
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">State / Region</div>
             <div className="mt-1 text-sm font-medium">
@@ -429,30 +452,133 @@ export default function DriverDetailsPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="documents" className="space-y-3">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-3"
+      >
         <TabsList className="h-10 rounded-xl border bg-muted/70 p-1">
-          <TabsTrigger value="documents" className="rounded-lg px-4">
+          <TabsTrigger
+            value="summary"
+            className="rounded-lg px-4 cursor-pointer"
+          >
+            Summary
+          </TabsTrigger>
+          <TabsTrigger
+            value="documents"
+            className="rounded-lg px-4 cursor-pointer"
+          >
             Documents
           </TabsTrigger>
-          <TabsTrigger value="vehicle-photos" className="rounded-lg px-4">
+          <TabsTrigger
+            value="vehicle-photos"
+            className="rounded-lg px-4 cursor-pointer"
+          >
             Vehicle Photos
-          </TabsTrigger>
-          <TabsTrigger value="summary" className="rounded-lg px-4">
-            Summary
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="summary">
+          <Card className="border-primary/10">
+            <CardHeader>
+              <CardTitle>Application Summary</CardTitle>
+              <CardDescription>
+                Quick status and submitted document checklist. Click any item to
+                view details.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <button
+                type="button"
+                onClick={() => navigateToDocument("driverLicense")}
+                className="w-full flex items-center justify-between cursor-pointer rounded-md border bg-card p-3 text-sm text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <FileText className="size-4 text-primary" /> Driver License
+                </span>
+                <span className="inline-flex items-center gap-2 text-muted-foreground">
+                  {documents.driverLicense ? "Submitted" : "Not Submitted"}
+                  <ChevronRight className="size-4" />
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToDocument("vehicleRegistration")}
+                className="w-full flex items-center justify-between cursor-pointer rounded-md border bg-card p-3 text-sm text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <FileText className="size-4 text-primary" /> Vehicle
+                  Registration
+                </span>
+                <span className="inline-flex items-center gap-2 text-muted-foreground">
+                  {documents.vehicleRegistration
+                    ? "Submitted"
+                    : "Not Submitted"}
+                  <ChevronRight className="size-4" />
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateToDocument("gunLicense")}
+                className="w-full flex items-center justify-between cursor-pointer rounded-md border bg-card p-3 text-sm text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <FileText className="size-4 text-primary" /> Arm License
+                </span>
+                <span className="inline-flex items-center gap-2 text-muted-foreground">
+                  {documents.gunLicense ? "Submitted" : "Not Submitted"}
+                  <ChevronRight className="size-4" />
+                </span>
+              </button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="documents" className="space-y-4">
-          <DocumentPair
-            title="Driver License"
-            value={documents.driverLicense}
-          />
-          <DocumentPair title="Government ID" value={documents.governmentId} />
-          <DocumentPair
-            title="Vehicle Registration Document"
-            value={documents.vehicleRegistration?.document ?? null}
-          />
-          <DocumentPair title="Gun License" value={documents.gunLicense} />
+          <div id="doc-driver-license" className="scroll-mt-4">
+            <DocumentPair
+              title="Driver License"
+              value={documents.driverLicense}
+              metadata={[
+                {
+                  label: "License number",
+                  value: documents.driverLicense?.licenseNumber,
+                },
+                {
+                  label: "License expiry",
+                  value: formatDate(
+                    documents.driverLicense?.expiryDate || null,
+                  ),
+                },
+              ]}
+            />
+          </div>
+
+          <div id="doc-vehicle-registration" className="scroll-mt-4">
+            <DocumentPair
+              title="Vehicle Registration Document"
+              value={documents.vehicleRegistration?.document ?? null}
+              metadata={[
+                {
+                  label: "Registration number",
+                  value: documents.vehicleRegistration?.registrationNumber,
+                },
+                {
+                  label: "Registration expiry",
+                  value: formatDate(
+                    documents.vehicleRegistration?.registrationExpiryDate ||
+                      null,
+                  ),
+                },
+              ]}
+            />
+          </div>
+
+          <div id="doc-arm-license" className="scroll-mt-4">
+            <DocumentPair title="Arm License" value={documents.gunLicense} />
+          </div>
         </TabsContent>
 
         <TabsContent value="vehicle-photos">
@@ -508,54 +634,6 @@ export default function DriverDetailsPage() {
                     No interior images submitted.
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="summary">
-          <Card className="border-primary/10">
-            <CardHeader>
-              <CardTitle>Application Summary</CardTitle>
-              <CardDescription>
-                Quick status and submitted document checklist.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center justify-between rounded-md border bg-card p-3 text-sm">
-                <span className="inline-flex items-center gap-2">
-                  <FileText className="size-4 text-primary" /> Driver License
-                </span>
-                <span>
-                  {documents.driverLicense ? "Submitted" : "Not Submitted"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-md border bg-card p-3 text-sm">
-                <span className="inline-flex items-center gap-2">
-                  <FileText className="size-4 text-primary" /> Government ID
-                </span>
-                <span>
-                  {documents.governmentId ? "Submitted" : "Not Submitted"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-md border bg-card p-3 text-sm">
-                <span className="inline-flex items-center gap-2">
-                  <FileText className="size-4 text-primary" /> Vehicle
-                  Registration
-                </span>
-                <span>
-                  {documents.vehicleRegistration
-                    ? "Submitted"
-                    : "Not Submitted"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-md border bg-card p-3 text-sm">
-                <span className="inline-flex items-center gap-2">
-                  <FileText className="size-4 text-primary" /> Gun License
-                </span>
-                <span>
-                  {documents.gunLicense ? "Submitted" : "Not Submitted"}
-                </span>
               </div>
             </CardContent>
           </Card>

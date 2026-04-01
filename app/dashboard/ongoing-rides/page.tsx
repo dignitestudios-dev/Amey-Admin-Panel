@@ -79,7 +79,7 @@ const RidesPage = () => {
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-black">Ride Management</h1>
+        <h1 className="text-3xl font-bold text-black">Ongoing Rides</h1>
         <p className="text-sm text-gray-500 mt-2">
           Track rides, monitor statuses, and review route activity
         </p>

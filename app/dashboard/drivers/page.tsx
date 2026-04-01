@@ -11,6 +11,7 @@ import {
   type DriverSecurityType,
   type DriverStatus,
 } from "@/lib/api/drivers.api";
+import { useSearchParams } from "next/navigation";
 
 interface DriverFilters {
   status: "all" | DriverStatus;
@@ -23,12 +24,15 @@ const Drivers = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+
   const [filters, setFilters] = useState<DriverFilters>({
-    status: "all",
+    status: (searchParams.get("status") as DriverStatus) || "all",
     armedType: "all",
     rating: "",
     rideCount: "",
   });
+
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [actionDriverId, setActionDriverId] = useState<string | null>(null);
@@ -99,11 +103,15 @@ const Drivers = () => {
       await approveMutation.mutateAsync({ driverId });
       await Promise.all([
         driversQuery.refetch(),
-        queryClient.invalidateQueries({ queryKey: ["driver-application-details", driverId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["driver-application-details", driverId],
+        }),
       ]);
       toast.success("Driver approved successfully.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to approve driver.");
+      toast.error(
+        error instanceof Error ? error.message : "Unable to approve driver.",
+      );
     } finally {
       setActionDriverId(null);
     }
@@ -115,11 +123,15 @@ const Drivers = () => {
       await rejectMutation.mutateAsync({ driverId, rejectionReason });
       await Promise.all([
         driversQuery.refetch(),
-        queryClient.invalidateQueries({ queryKey: ["driver-application-details", driverId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["driver-application-details", driverId],
+        }),
       ]);
       toast.success("Driver rejected successfully.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to reject driver.");
+      toast.error(
+        error instanceof Error ? error.message : "Unable to reject driver.",
+      );
     } finally {
       setActionDriverId(null);
     }
@@ -130,7 +142,8 @@ const Drivers = () => {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-black">Driver Management</h1>
         <p className="text-sm text-gray-500 mt-2">
-          Manage driver accounts, approve applications, and monitor driver activities
+          Manage driver accounts, approve applications, and monitor driver
+          activities
         </p>
       </div>
       <DriversDataTable

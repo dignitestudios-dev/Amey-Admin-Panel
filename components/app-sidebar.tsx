@@ -9,6 +9,7 @@ import {
   CreditCard,
   BarChart3,
   Bell,
+  Motorbike,
 } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -61,6 +62,11 @@ const data = {
           title: "Rides",
           url: "/dashboard/rides",
           icon: Navigation,
+        },
+        {
+          title: "Ongoing Rides",
+          url: "/dashboard/ongoing-rides",
+          icon: Motorbike,
         },
       ],
     },
