@@ -191,7 +191,7 @@ const DriverDetailsSkeleton = () => {
           <Skeleton className="h-4 w-80" />
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, index) => (
+          {Array.from({ length: 24 }).map((_, index) => (
             <div
               key={`meta-${index}`}
               className="rounded-lg border p-3 space-y-2"
@@ -352,6 +352,7 @@ export default function DriverDetailsPage() {
 
   const review = detailsQuery.data.review;
   const documents = review.documents;
+  const driverInfo = review.driverInfo;
   const isPendingStatus = review.accountStatus.toLowerCase() === "pending";
   const isActionPending = approveMutation.isPending || rejectMutation.isPending;
 
@@ -409,13 +410,37 @@ export default function DriverDetailsPage() {
             Complete review and document verification data for this driver.
           </CardDescription>
         </CardHeader>
+
+
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border bg-card p-3">
-            <div className="text-xs text-muted-foreground">Driver ID</div>
-            <div className="mt-1 text-sm font-medium break-all">
-              {review.driverId || "-"}
+          {/* <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Full Name</div>
+            <div className="mt-1 text-sm font-medium">
+              {driverInfo?.fullName || "-"}
             </div>
           </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Email</div>
+            <div className="mt-1 text-sm font-medium break-all">
+              {driverInfo?.email || "-"}
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Phone</div>
+            <div className="mt-1 text-sm font-medium">
+              {driverInfo?.phoneNumber || "-"}
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Driver ID</div>
+            <div className="mt-1 text-xs font-medium break-all">
+              {review.driverId || "-"}
+            </div>
+          </div> */}
+
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">Account Status</div>
             <div className="mt-1 text-sm font-medium">
@@ -426,6 +451,7 @@ export default function DriverDetailsPage() {
               </Badge>
             </div>
           </div>
+
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">Submitted Date</div>
             <div className="mt-1 inline-flex items-center gap-2 text-sm font-medium">
@@ -434,21 +460,165 @@ export default function DriverDetailsPage() {
             </div>
           </div>
 
+          {/* <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Date of Birth</div>
+            <div className="mt-1 text-sm font-medium">
+              {formatDate(driverInfo?.dateOfBirth || null)}
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Gender</div>
+            <div className="mt-1 text-sm font-medium capitalize">
+              {driverInfo?.gender || "-"}
+            </div>
+          </div> */}
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Verified</div>
+            <div className="mt-1 text-sm font-medium">
+              <Badge
+                variant={driverInfo?.isVerified ? "default" : "secondary"}
+              >
+                {driverInfo?.isVerified ? "Yes" : "No"}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">
+              Profile Completed
+            </div>
+            <div className="mt-1 text-sm font-medium">
+              <Badge
+                variant={
+                  driverInfo?.isProfileCompleted ? "default" : "secondary"
+                }
+              >
+                {driverInfo?.isProfileCompleted ? "Yes" : "No"}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Online Status</div>
+            <div className="mt-1 text-sm font-medium">
+              <Badge
+                variant={driverInfo?.isOnline ? "default" : "secondary"}
+              >
+                {driverInfo?.isOnline ? "Online" : "Offline"}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Average Rating</div>
+            <div className="mt-1 text-sm font-medium">
+              {driverInfo?.avgRating || "0"} ⭐
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">City</div>
+            <div className="mt-1 text-sm font-medium">
+              {driverInfo?.city || "-"}
+            </div>
+          </div>
+
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">State / Region</div>
             <div className="mt-1 text-sm font-medium">
-              {documents.vehicleRegistration?.stateOrRegionOfRegistration ||
+              {driverInfo?.state ||
+                documents.vehicleRegistration?.stateOrRegionOfRegistration ||
                 "-"}
             </div>
           </div>
-          <div className="rounded-lg border bg-card p-3 md:col-span-2 xl:col-span-4">
-            <div className="text-xs text-muted-foreground">
-              Rejection Reason
-            </div>
-            <div className="mt-1 text-sm font-medium">
-              {review.rejectionReason || "-"}
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Address</div>
+            <div className="mt-1 text-sm font-medium break-all">
+              {driverInfo?.address || "-"}
             </div>
           </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Vehicle Type</div>
+            <div className="mt-1 text-sm font-medium capitalize">
+              {driverInfo?.vehicleType || "-"}
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">
+              Security Option
+            </div>
+            <div className="mt-1 text-sm font-medium capitalize">
+              {driverInfo?.rideSecurityOption || "-"}
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">
+              Notifications Enabled
+            </div>
+            <div className="mt-1 text-sm font-medium">
+              <Badge
+                variant={
+                  driverInfo?.allowNotifications ? "default" : "secondary"
+                }
+              >
+                {driverInfo?.allowNotifications ? "Yes" : "No"}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Incoming Rides</div>
+            <div className="mt-1 text-sm font-medium">
+              {driverInfo?.enabledIncomingRides?.join(", ") || "-"}
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Created At</div>
+            <div className="mt-1 text-sm font-medium">
+              {formatDate(driverInfo?.createdAt || null)}
+            </div>
+          </div>
+
+          {/* <div className="rounded-lg border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Updated At</div>
+            <div className="mt-1 text-sm font-medium">
+              {formatDate(driverInfo?.updatedAt || null)}
+            </div>
+          </div> */}
+
+         
+
+
+
+          {/* {driverInfo?.currentLocation && (
+            <div className="rounded-lg border bg-card p-3 md:col-span-2">
+              <div className="text-xs text-muted-foreground">
+                Current Location
+              </div>
+              <div className="mt-1 text-sm font-medium">
+                Latitude: {driverInfo.currentLocation.coordinates?.[1] || "-"},{" "}
+                Longitude: {driverInfo.currentLocation.coordinates?.[0] || "-"}
+              </div>
+            </div>
+          )} */}
+
+          {review.rejectionReason ? (
+            <div className="rounded-lg border bg-card p-3 md:col-span-2 xl:col-span-4">
+              <div className="text-xs text-muted-foreground">
+                Rejection Reason
+              </div>
+              <div className="mt-1 text-sm font-medium">
+                {review.rejectionReason}
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -479,61 +649,293 @@ export default function DriverDetailsPage() {
         </TabsList>
 
         <TabsContent value="summary">
-          <Card className="border-primary/10">
-            <CardHeader>
-              <CardTitle>Application Summary</CardTitle>
-              <CardDescription>
-                Quick status and submitted document checklist. Click any item to
-                view details.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <button
-                type="button"
-                onClick={() => navigateToDocument("driverLicense")}
-                className="w-full flex items-center justify-between cursor-pointer rounded-md border bg-card p-3 text-sm text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <FileText className="size-4 text-primary" /> Driver License
-                </span>
-                <span className="inline-flex items-center gap-2 text-muted-foreground">
-                  {documents.driverLicense ? "Submitted" : "Not Submitted"}
-                  <ChevronRight className="size-4" />
-                </span>
-              </button>
+          <div className="space-y-4">
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Driver Information</CardTitle>
+                <CardDescription>
+                  Personal and professional details of the driver.
+                </CardDescription>
+              </CardHeader>
 
-              <button
-                type="button"
-                onClick={() => navigateToDocument("vehicleRegistration")}
-                className="w-full flex items-center justify-between cursor-pointer rounded-md border bg-card p-3 text-sm text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <FileText className="size-4 text-primary" /> Vehicle
-                  Registration
-                </span>
-                <span className="inline-flex items-center gap-2 text-muted-foreground">
-                  {documents.vehicleRegistration
-                    ? "Submitted"
-                    : "Not Submitted"}
-                  <ChevronRight className="size-4" />
-                </span>
-              </button>
+              <div className="flex items-center pl-4 pb-0 gap-4 mb-4">
+  <img
+    src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/${driverInfo?.profileImageUrl}`}
+    alt="Driver Profile"
+    className="w-20 h-20 rounded-full object-cover border"
+  />
 
-              <button
-                type="button"
-                onClick={() => navigateToDocument("gunLicense")}
-                className="w-full flex items-center justify-between cursor-pointer rounded-md border bg-card p-3 text-sm text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <FileText className="size-4 text-primary" /> Arm License
-                </span>
-                <span className="inline-flex items-center gap-2 text-muted-foreground">
-                  {documents.gunLicense ? "Submitted" : "Not Submitted"}
-                  <ChevronRight className="size-4" />
-                </span>
-              </button>
-            </CardContent>
-          </Card>
+  <div>
+    <div className="text-lg font-semibold">
+      {driverInfo?.fullName || "-"}
+    </div>
+    <div className="text-sm text-muted-foreground">
+      {driverInfo?.email || "-"}
+    </div>
+  </div>
+</div>
+              <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Full Name
+                  </div>
+                  <div className="mt-1 text-sm font-medium">
+                    {driverInfo?.fullName || "-"}
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">Email</div>
+                  <div className="mt-1 text-sm font-medium break-all">
+                    {driverInfo?.email || "-"}
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Phone Number
+                  </div>
+                  <div className="mt-1 text-sm font-medium">
+                    {driverInfo?.phoneNumber || "-"}
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Date of Birth
+                  </div>
+                  <div className="mt-1 text-sm font-medium">
+                    {formatDate(driverInfo?.dateOfBirth || null)}
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">Gender</div>
+                  <div className="mt-1 text-sm font-medium capitalize">
+                    {driverInfo?.gender || "-"}
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Average Rating
+                  </div>
+                  <div className="mt-1 text-sm font-medium">
+                    {driverInfo?.avgRating || "0"} ⭐
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Location & Address</CardTitle>
+                <CardDescription>
+                  Driver's address and current location.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-md bg-muted/50 px-3 py-2">
+                    <div className="text-xs text-muted-foreground">City</div>
+                    <div className="mt-1 text-sm font-medium">
+                      {driverInfo?.city || "-"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-md bg-muted/50 px-3 py-2">
+                    <div className="text-xs text-muted-foreground">
+                      State / Region
+                    </div>
+                    <div className="mt-1 text-sm font-medium">
+                      {driverInfo?.state || "-"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">Address</div>
+                  <div className="mt-1 text-sm font-medium break-all">
+                    {driverInfo?.address || "-"}
+                  </div>
+                </div>
+
+                {/* {driverInfo?.currentLocation && (
+                  <div className="rounded-md bg-muted/50 px-3 py-2">
+                    <div className="text-xs text-muted-foreground">
+                      Current Location
+                    </div>
+                    <div className="mt-1 text-sm font-medium">
+                      Lat: {driverInfo.currentLocation.coordinates?.[1] || "-"}
+                      , Lng:{" "}
+                      {driverInfo.currentLocation.coordinates?.[0] || "-"}
+                    </div>
+                  </div>
+                )} */}
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Vehicle Information</CardTitle>
+                <CardDescription>
+                  Vehicle type and security settings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Vehicle Type
+                  </div>
+                  <div className="mt-1 text-sm font-medium capitalize">
+                    {driverInfo?.vehicleType || "-"}
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Security Option
+                  </div>
+                  <div className="mt-1 text-sm font-medium capitalize">
+                    {driverInfo?.rideSecurityOption || "-"}
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Incoming Rides Enabled
+                  </div>
+                  <div className="mt-1 text-sm font-medium">
+                    {driverInfo?.enabledIncomingRides?.length
+                      ? driverInfo.enabledIncomingRides.join(", ")
+                      : "-"}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Status & Verification</CardTitle>
+                <CardDescription>
+                  Verification and account status information.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">Verified</div>
+                  <div className="mt-1 text-sm font-medium">
+                    <Badge
+                      variant={driverInfo?.isVerified ? "default" : "secondary"}
+                    >
+                      {driverInfo?.isVerified ? "Yes" : "No"}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Profile Completed
+                  </div>
+                  <div className="mt-1 text-sm font-medium">
+                    <Badge
+                      variant={
+                        driverInfo?.isProfileCompleted
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {driverInfo?.isProfileCompleted ? "Yes" : "No"}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Online Status
+                  </div>
+                  <div className="mt-1 text-sm font-medium">
+                    <Badge
+                      variant={driverInfo?.isOnline ? "default" : "secondary"}
+                    >
+                      {driverInfo?.isOnline ? "Online" : "Offline"}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Notifications
+                  </div>
+                  <div className="mt-1 text-sm font-medium">
+                    <Badge
+                      variant={
+                        driverInfo?.allowNotifications ? "default" : "secondary"
+                      }
+                    >
+                      {driverInfo?.allowNotifications ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/10">
+              <CardHeader>
+                <CardTitle>Application Summary</CardTitle>
+                <CardDescription>
+                  Quick status and submitted document checklist. Click any item to
+                  view details.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => navigateToDocument("driverLicense")}
+                  className="w-full flex items-center justify-between cursor-pointer rounded-md border bg-card p-3 text-sm text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <FileText className="size-4 text-primary" /> Driver License
+                  </span>
+                  <span className="inline-flex items-center gap-2 text-muted-foreground">
+                    {documents.driverLicense ? "Submitted" : "Not Submitted"}
+                    <ChevronRight className="size-4" />
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigateToDocument("vehicleRegistration")}
+                  className="w-full flex items-center justify-between cursor-pointer rounded-md border bg-card p-3 text-sm text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <FileText className="size-4 text-primary" /> Vehicle
+                    Registration
+                  </span>
+                  <span className="inline-flex items-center gap-2 text-muted-foreground">
+                    {documents.vehicleRegistration
+                      ? "Submitted"
+                      : "Not Submitted"}
+                    <ChevronRight className="size-4" />
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigateToDocument("gunLicense")}
+                  className="w-full flex items-center justify-between cursor-pointer rounded-md border bg-card p-3 text-sm text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <FileText className="size-4 text-primary" /> Arm License
+                  </span>
+                  <span className="inline-flex items-center gap-2 text-muted-foreground">
+                    {documents.gunLicense ? "Submitted" : "Not Submitted"}
+                    <ChevronRight className="size-4" />
+                  </span>
+                </button>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-4">

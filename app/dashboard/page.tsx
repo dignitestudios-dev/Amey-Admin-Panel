@@ -51,7 +51,8 @@ const statsConfig = [
     icon: Car,
     getValue: (counts: DashboardCounts) =>
       counts.activeRidesCount.toLocaleString("en-US"),
-    url: "/dashboard/rides?status=in-progress",
+    // url: "/dashboard/rides?status=in-progress",
+    url: "/dashboard/ongoing-rides",
   },
   {
     label: "Passengers",

@@ -111,6 +111,14 @@ export interface RideDetails {
   estimatedFare: number;
   actualFare: number;
 
+  rideHistory?: {
+    feedback?: {
+      rating?: number;
+      description?: string;
+      images?: string[];
+    };
+  };
+
   rideDate: string;
   startTime: string;
   endTime: string;
@@ -152,9 +160,16 @@ export interface RidesResponse {
   pagination: RidesPagination;
 }
 
+export interface RideFilters {
+  status: "all" | RideStatus;
+  rideType: "all" | RideType;
+  isOnGoing: boolean;
+}
+
 export interface GetRidesParams {
   status?: RideStatus;
   rideType?: RideType;
+  isOnGoing?: boolean;
   search?: string;
   page: number;
   limit: number;
@@ -244,6 +259,14 @@ type RawRideDetailsResponse = {
     createdAt?: string;
     updatedAt?: string;
     driverId?: string | null;
+    rideHistory?: {
+      feedback?: {
+        rating?: number;
+        " rating"?: number;
+        description?: string;
+        images?: string[];
+      };
+    };
   };
 };
 
@@ -390,9 +413,20 @@ export const getRideById = async (rideId: string): Promise<RideDetailsResponse> 
             updatedAt: passengerData.updatedAt ?? "",
           }
           : null,
+        rideHistory: ride.rideHistory?.feedback
+          ? {
+              feedback: {
+                rating:
+                  ride.rideHistory.feedback?.rating ??
+                  ride.rideHistory.feedback?.[" rating"] ??
+                  0,
+                description: ride.rideHistory.feedback?.description ?? "",
+                images: ride.rideHistory.feedback?.images ?? [],
+              },
+            }
+          : undefined,
       },
-    };
-  } catch (error) {
+    };  } catch (error) {
     throw new Error(getApiErrorMessage(error));
   }
 };

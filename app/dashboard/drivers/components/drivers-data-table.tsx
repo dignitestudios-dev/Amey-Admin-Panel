@@ -49,6 +49,7 @@ interface DriverFilters {
   armedType: "all" | DriverSecurityType;
   rating: string;
   rideCount: string;
+  sortBy: "asc" | "desc";
 }
 
 interface DriversDataTableProps {
@@ -208,6 +209,7 @@ export function DriversDataTable({
                   armedType: "all",
                   rating: "",
                   rideCount: "",
+                  sortBy: "asc",
                 });
                 onSearchChange("");
               }}
@@ -254,6 +256,24 @@ export function DriversDataTable({
                     <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
                     <SelectItem value="suspended">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm text-black block">Sort Order</Label>
+                <Select
+                  value={draftFilters.sortBy}
+                  onValueChange={(value) =>
+                    setDraftFilters({ ...draftFilters, sortBy: value as "asc" | "desc" })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                    <SelectItem value="desc">Descending</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -322,6 +342,7 @@ export function DriversDataTable({
                   armedType: "all",
                   rating: "",
                   rideCount: "",
+                  sortBy: "asc",
                 })
               }
             >

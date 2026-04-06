@@ -36,13 +36,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Ride, RideStatus, RideType } from "@/lib/api/rides.api";
+import type { Ride, RideFilters, RideStatus, RideType } from "@/lib/api/rides.api";
 import { useRouter } from "next/navigation";
-
-interface RideFilters {
-  status: "all" | RideStatus;
-  rideType: "all" | RideType;
-}
 
 interface RidesDataTableProps {
   rides: Ride[];
@@ -181,7 +176,7 @@ export function RidesDataTable({
               size="sm"
               className="text-gray-600 hover:text-black"
               onClick={() => {
-                onFilterChange({ status: "all", rideType: "all" });
+                onFilterChange({ status: "all", rideType: "all", isOnGoing: true });
                 onSearchChange("");
               }}
               title="Clear filters"
@@ -270,6 +265,7 @@ export function RidesDataTable({
                 setDraftFilters({
                   status: "all",
                   rideType: "all",
+                  isOnGoing: true,
                 })
               }
             >

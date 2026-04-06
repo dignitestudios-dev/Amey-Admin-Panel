@@ -39,6 +39,7 @@ interface PassengerFilters {
   status: "all" | AccountStatus;
   date: string;
   rideCount: string;
+  sortBy: "asc" | "desc";
 }
 
 interface DataTableProps {
@@ -125,12 +126,14 @@ export function DataTable({
     filters.status,
     filters.date || "all",
     filters.rideCount || "all",
+    filters.sortBy,
   ].filter((value) => value !== "all").length;
 
   const hasActiveFilters =
     filters.status !== "all" ||
     Boolean(filters.date) ||
     Boolean(filters.rideCount) ||
+    filters.sortBy !== "asc" ||
     searchQuery !== "";
 
   return (
@@ -177,6 +180,7 @@ export function DataTable({
                   status: "all",
                   date: "",
                   rideCount: "",
+                  sortBy: "asc",
                 });
                 onSearchChange("");
               }}
@@ -252,6 +256,29 @@ export function DataTable({
 
               <div className="space-y-2">
                 <Label className="text-sm text-black block">
+                  Sort Order
+                </Label>
+                <Select
+                  value={draftFilters.sortBy}
+                  onValueChange={(value) =>
+                    setDraftFilters({
+                      ...draftFilters,
+                      sortBy: value as "asc" | "desc",
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                    <SelectItem value="desc">Descending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm text-black block">
                   Minimum Rides
                 </Label>
                 <Input
@@ -284,6 +311,7 @@ export function DataTable({
                   status: "all",
                   date: "",
                   rideCount: "",
+                  sortBy: "asc",
                 })
               }
             >

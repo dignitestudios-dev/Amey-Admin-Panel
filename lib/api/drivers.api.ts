@@ -33,6 +33,7 @@ export interface GetDriversParams {
   search?: string;
   rating?: number;
   rideCount?: number;
+  sortBy?: "asc" | "desc";
   page: number;
   limit: number;
 }
@@ -67,12 +68,52 @@ export interface DriverApplicationDocuments {
   vehiclePhotos: VehiclePhotosDetails | null;
 }
 
+export interface DriverInfo {
+  _id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  gender: string;
+  genderDescription: string;
+  city: string;
+  state: string;
+  address: string;
+  currentLocation: {
+    type: string;
+    coordinates: [number, number];
+  };
+  vehicleType: string;
+  rideSecurityOption: string;
+  avgRating: number;
+  isOnline: boolean;
+  isVerified: boolean;
+  isProfileCompleted: boolean;
+  allowNotifications: boolean;
+  enabledIncomingRides: string[];
+  profileImageUrl: string;
+  licenseInfo: DriverDocumentSide | null;
+  permitInfo: DriverDocumentSide | null;
+  connectedAccountId: string;
+  stripeBankId: string;
+  session: {
+    deviceInfo: string;
+  };
+  socketId: string;
+  createdAt: string;
+  updatedAt: string;
+  accountStatus: string;
+  driverId: string;
+  rejectionReason: string[];
+}
+
 export interface DriverApplicationReview {
   driverId: string;
   accountStatus: string;
   submittedDate: string | null;
   rejectionReason: string;
   documents: DriverApplicationDocuments;
+  driverInfo: DriverInfo | null;
 }
 
 export interface DriverApplicationDetailsResponse {
@@ -136,6 +177,7 @@ export const getDriverApplicationDetails = async (
       DriverApplicationDetailsResponse & {
         review?: DriverApplicationDetailsResponse["review"] & {
           rejectionReason?: string;
+          driverInfo?: DriverInfo;
         };
       }
     >(`/admin/drivers/${driverId}`);
@@ -148,6 +190,7 @@ export const getDriverApplicationDetails = async (
         accountStatus: review?.accountStatus ?? "unknown",
         submittedDate: review?.submittedDate ?? null,
         rejectionReason: review?.rejectionReason ?? "",
+        driverInfo: review?.driverInfo ?? null,
         documents: {
           driverLicense: review?.documents?.driverLicense
             ? {

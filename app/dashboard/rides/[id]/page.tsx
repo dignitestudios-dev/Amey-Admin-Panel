@@ -80,7 +80,9 @@ const formatCurrency = (value: number) =>
     maximumFractionDigits: 2,
   }).format(value);
 
-const StarRating = ({ rating, max = 5 }: { rating: number; max?: number }) => (
+const StarRating = ({ rating, max = 5 }: { rating: number; max?: number }) =>{
+  console.log("rating-->",rating)
+return(
   <div className="inline-flex items-center gap-0.5">
     {Array.from({ length: max }).map((_, i) => (
       <Star
@@ -97,6 +99,7 @@ const StarRating = ({ rating, max = 5 }: { rating: number; max?: number }) => (
     </span>
   </div>
 );
+} 
 
 const InfoCell = ({
   label,
@@ -193,10 +196,13 @@ export default function RideDetailsPage() {
   }
 
   const ride = detailsQuery.data.ride;
-  console.log(detailsQuery.data.ride,"riderDriverDe")
   const driver: RideDriverDetails | null | undefined = detailsQuery.data.ride?.driverId;
   const passenger = detailsQuery.data.ride?.passenger;
+  const feedback = ride.rideHistory?.feedback;
+  const feedbackRating = feedback?.rating ?? 0;
+  const feedbackImages = feedback?.images ?? [];
 
+  
   return (
     <div className="flex flex-col gap-4 px-4 lg:px-6 mt-2 pb-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -508,39 +514,62 @@ export default function RideDetailsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {ride.passengerReview ? (
-                  <div className="space-y-3">
-                    <div className="rounded-lg border p-4">
-                      <div className="text-xs text-muted-foreground mb-2">
-                        Rating
-                      </div>
-                      <StarRating rating={ride.passengerReview.rating ?? 0} />
-                    </div>
-                    <div className="rounded-lg border p-4">
-                      <div className="text-xs text-muted-foreground mb-1">
-                        Feedback
-                      </div>
-                      <p className="text-sm">
-                        {ride.passengerReview.feedback || "-"}
-                      </p>
-                    </div>
-                    {ride.passengerReview.createdAt && (
-                      <InfoCell label="Submitted At">
-                        {formatDateTime(ride.passengerReview.createdAt)}
-                      </InfoCell>
-                    )}
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground flex items-center gap-2">
-                    <MessageSquare className="size-4 shrink-0" />
-                    No review submitted by the passenger.
-                  </div>
-                )}
+              {feedback ? (
+  <div className="space-y-3">
+    
+    {/* ⭐ Rating */}
+    <div className="rounded-lg border p-4">
+      <div className="text-xs text-muted-foreground mb-2">
+        Rating
+      </div>
+
+      {/* Stars */}
+      <StarRating rating={feedbackRating} />
+    </div>
+
+    {/* 📝 Feedback */}
+    <div className="rounded-lg border p-4">
+      <div className="text-xs text-muted-foreground mb-1">
+        Feedback
+      </div>
+      <p className="text-sm">
+        {feedback.description || "-"}
+      </p>
+    </div>
+
+   <div className="rounded-lg border p-4">
+  <div className="text-xs text-muted-foreground mb-1">
+    Images
+  </div>
+
+  {feedbackImages.length > 0 ? (
+    <div className="flex gap-2 flex-wrap">
+      {feedbackImages.map((img, index) => (
+        <img
+          key={index}
+          src={img}
+          alt={`Feedback ${index}`}
+          className="rounded-md h-24 w-24 object-cover"
+        />
+      ))}
+    </div>
+  ) : (
+    <p className="text-sm">-</p>
+  )}
+</div>
+
+  </div>
+) : (
+  <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground flex items-center gap-2">
+    <MessageSquare className="size-4 shrink-0" />
+    No feedback available.
+  </div>
+)}
               </CardContent>
             </Card>
 
             {/* Driver → Passenger */}
-            <Card>
+            {/* <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">
                   Driver&apos;s Review of Passenger
@@ -579,7 +608,7 @@ export default function RideDetailsPage() {
                   </div>
                 )}
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Driver overall rating */}
             {driver && (

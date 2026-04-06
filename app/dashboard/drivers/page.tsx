@@ -18,6 +18,7 @@ interface DriverFilters {
   armedType: "all" | DriverSecurityType;
   rating: string;
   rideCount: string;
+  sortBy: "asc" | "desc";
 }
 
 const Drivers = () => {
@@ -31,6 +32,7 @@ const Drivers = () => {
     armedType: "all",
     rating: "",
     rideCount: "",
+    sortBy: (searchParams.get("sortBy") as "asc" | "desc") || "asc",
   });
 
   const [page, setPage] = useState(1);
@@ -53,6 +55,7 @@ const Drivers = () => {
       search: debouncedSearchQuery.trim() || undefined,
       rating: filters.rating ? Number(filters.rating) : undefined,
       rideCount: filters.rideCount ? Number(filters.rideCount) : undefined,
+      sortBy: filters.sortBy,
       page,
       limit,
     };

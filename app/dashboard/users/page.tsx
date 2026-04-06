@@ -14,6 +14,7 @@ interface PassengerFilters {
   status: "all" | AccountStatus;
   date: string;
   rideCount: string;
+  sortBy: "asc" | "desc";
 }
 
 export default function PassengersPage() {
@@ -24,6 +25,7 @@ export default function PassengersPage() {
     status: "all",
     date: "",
     rideCount: "",
+    sortBy: "asc",
   });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -44,6 +46,7 @@ export default function PassengersPage() {
       search: debouncedSearchQuery.trim() || undefined,
       date: filters.date || undefined,
       rideCount: filters.rideCount ? Number(filters.rideCount) : undefined,
+      sortBy: filters.sortBy,
       page,
       limit,
     };

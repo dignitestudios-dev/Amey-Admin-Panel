@@ -5,15 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { RidesDataTable } from "./components/rides-data-table";
 import {
   getRides,
+  type RideFilters,
   type RideStatus,
   type RideType,
 } from "@/lib/api/rides.api";
 import { useSearchParams } from "next/navigation";
-
-interface RideFilters {
-  status: "all" | RideStatus;
-  rideType: "all" | RideType;
-}
 
 const RidesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,6 +18,7 @@ const RidesPage = () => {
   const [filters, setFilters] = useState<RideFilters>({
     status: (searchParams.get("status") as RideFilters["status"]) || "all",
     rideType: "all",
+    isOnGoing: false,
   });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -39,6 +36,7 @@ const RidesPage = () => {
     return {
       status: filters.status === "all" ? undefined : filters.status,
       rideType: filters.rideType === "all" ? undefined : filters.rideType,
+      isOnGoing: false,
       search: debouncedSearchQuery.trim() || undefined,
       page,
       limit,

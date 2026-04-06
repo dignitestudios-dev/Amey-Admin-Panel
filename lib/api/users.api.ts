@@ -125,6 +125,7 @@ export interface GetPassengersParams {
   search?: string;
   date?: string;
   rideCount?: number;
+  sortBy?: "asc" | "desc";
   page: number;
   limit: number;
 }

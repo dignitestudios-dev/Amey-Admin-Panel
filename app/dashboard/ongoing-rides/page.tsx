@@ -12,7 +12,8 @@ import { useSearchParams } from "next/navigation";
 
 interface RideFilters {
   status: "all" | RideStatus;
-  rideType: "all" | RideType;
+  rideType: "all";
+  isOnGoing: boolean;
 }
 
 const RidesPage = () => {
@@ -22,6 +23,7 @@ const RidesPage = () => {
   const [filters, setFilters] = useState<RideFilters>({
     status: (searchParams.get("status") as RideFilters["status"]) || "all",
     rideType: "all",
+    isOnGoing: true, // Always show ongoing rides
   });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -39,6 +41,7 @@ const RidesPage = () => {
     return {
       status: filters.status === "all" ? undefined : filters.status,
       rideType: filters.rideType === "all" ? undefined : filters.rideType,
+      isOnGoing: true, // Always show ongoing rides
       search: debouncedSearchQuery.trim() || undefined,
       page,
       limit,
@@ -53,11 +56,6 @@ const RidesPage = () => {
 
   const rides = ridesQuery.data?.rides ?? [];
   const pagination = ridesQuery.data?.pagination;
-
-  const handleFilterChange = (nextFilters: RideFilters) => {
-    setFilters(nextFilters);
-    setPage(1);
-  };
 
   const handlePageChange = (nextPage: number) => {
     if (!pagination) {
@@ -96,7 +94,6 @@ const RidesPage = () => {
         isLoading={ridesQuery.isLoading}
         isFetching={ridesQuery.isFetching}
         error={ridesQuery.error?.message ?? null}
-        onFilterChange={handleFilterChange}
         onSearchChange={(value) => {
           setSearchQuery(value);
           if (!value.trim()) {

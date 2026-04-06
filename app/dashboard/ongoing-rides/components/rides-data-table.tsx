@@ -1,24 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import {
-  Eye,
-  Filter,
-  RotateCcw,
   Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,12 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Ride, RideStatus, RideType } from "@/lib/api/rides.api";
+import type { Ride, RideStatus } from "@/lib/api/rides.api";
 import { useRouter } from "next/navigation";
 
 interface RideFilters {
   status: "all" | RideStatus;
-  rideType: "all" | RideType;
+  rideType: "all";
+  isOnGoing: boolean;
 }
 
 interface RidesDataTableProps {
@@ -55,7 +43,6 @@ interface RidesDataTableProps {
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
-  onFilterChange: (filters: RideFilters) => void;
   onSearchChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (limit: number) => void;
@@ -124,22 +111,11 @@ export function RidesDataTable({
   isLoading,
   isFetching,
   error,
-  onFilterChange,
   onSearchChange,
   onPageChange,
   onPageSizeChange,
 }: RidesDataTableProps) {
-  const [draftFilters, setDraftFilters] = useState<RideFilters>(filters);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const router=useRouter();
-  const activeFilterCount = [filters.status, filters.rideType].filter(
-    (value) => value !== "all",
-  ).length;
-
-  const hasActiveFilters =
-    filters.status !== "all" ||
-    filters.rideType !== "all" ||
-    searchQuery !== "";
+  const router = useRouter();
 
   return (
     <div className="space-y-4">
@@ -156,139 +132,8 @@ export function RidesDataTable({
               onChange={(event) => onSearchChange(event.target.value)}
             />
           </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 w-9 p-0 border border-gray-200 relative"
-            onClick={() => {
-              setDraftFilters(filters);
-              setIsFilterOpen(true);
-            }}
-            title="Open filters"
-          >
-            <Filter className="w-4 h-4 text-gray-700" />
-            {activeFilterCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 h-4 min-w-4 rounded-full bg-black px-1 text-[10px] leading-4 text-white">
-                {activeFilterCount}
-              </span>
-            )}
-          </Button>
-
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-600 hover:text-black"
-              onClick={() => {
-                onFilterChange({ status: "all", rideType: "all" });
-                onSearchChange("");
-              }}
-              title="Clear filters"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-          )}
         </div>
       </div>
-
-      <Dialog
-        open={isFilterOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDraftFilters(filters);
-          }
-          setIsFilterOpen(open);
-        }}
-      >
-        <DialogContent className="sm:max-w-140 p-0 overflow-hidden">
-          <DialogHeader className="border-b bg-muted/30 px-6 py-5">
-            <DialogTitle className="text-black">Filter Rides</DialogTitle>
-            <DialogDescription>
-              Select your criteria and save to apply all filters at once.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="px-6 py-5 space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Ride Status</Label>
-                <Select
-                  value={draftFilters.status}
-                  onValueChange={(value) =>
-                    setDraftFilters({ ...draftFilters, status: value as RideFilters["status"] })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="requested">Requested</SelectItem>
-                    <SelectItem value="accepted">Accepted</SelectItem>
-                    <SelectItem value="on-the-way">On The Way</SelectItem>
-                    <SelectItem value="arrived">Arrived</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Ride Type</Label>
-                <Select
-                  value={draftFilters.rideType}
-                  onValueChange={(value) =>
-                    setDraftFilters({ ...draftFilters, rideType: value as RideFilters["rideType"] })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="hourly">Hourly</SelectItem>
-                    <SelectItem value="quick">Quick</SelectItem>
-                    <SelectItem value="child">Child</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              {activeFilterCount > 0
-                ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
-                : "No filters are currently applied."}
-            </div>
-          </div>
-
-          <DialogFooter className="border-t px-6 py-4 gap-2">
-            <Button
-              variant="outline"
-              onClick={() =>
-                setDraftFilters({
-                  status: "all",
-                  rideType: "all",
-                })
-              }
-            >
-              Reset
-            </Button>
-            <Button variant="outline" onClick={() => setIsFilterOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                onFilterChange(draftFilters);
-                setIsFilterOpen(false);
-              }}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Card className="shadow-none border-none pt-0 rounded-md overflow-hidden bg-white">
         <CardContent className="p-0">
