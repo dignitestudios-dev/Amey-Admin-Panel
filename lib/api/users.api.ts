@@ -19,6 +19,7 @@ export interface Passenger {
   isRestricted?: boolean;
   totalRides: number;
   regDate: string;
+  state: string;
 }
 
 export interface PassengerProfile {

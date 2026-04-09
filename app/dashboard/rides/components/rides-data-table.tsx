@@ -257,25 +257,33 @@ onFilterChange({
                 </Select>
               </div>
             </div>
+<div className="space-y-2">
+  <Label className="text-sm text-black block">State</Label>
 
-         <select
-         className="w-full border rounded-md p-2"
-  value={draftFilters.state || "all"}   // ✅ use draft state
-  onChange={(e) =>
-    setDraftFilters({
-      ...draftFilters,
-      state: e.target.value,
-    })
-  }
->
-  <option value="all">All States</option>
-  {US_STATES.map((state) => (
-    <option key={state} value={state}>
-      {state}
-    </option>
-  ))}
-</select>
+  <Select
+    value={draftFilters.state || "all"} // ✅ controlled
+    onValueChange={(value) =>
+      setDraftFilters({
+        ...draftFilters,
+        state: value, // ✅ updates draft only
+      })
+    }
+  >
+    <SelectTrigger className="w-full">
+      <SelectValue placeholder="Select state" />
+    </SelectTrigger>
 
+    <SelectContent>
+      <SelectItem value="all">All States</SelectItem>
+
+      {US_STATES.map((state) => (
+        <SelectItem key={state} value={state}>
+          {state}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
             <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
               {activeFilterCount > 0
                 ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
@@ -327,6 +335,7 @@ onFilterChange({
                   <TableHead>Status</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>City</TableHead>
+                  
                   <TableHead>Security</TableHead>
                   <TableHead className="text-right">Fare</TableHead>
                   <TableHead>Start Time</TableHead>

@@ -12,6 +12,7 @@ export interface Driver {
   totalRides: number;
   earnings: number;
   security: DriverSecurityType;
+  state: string;
 }
 
 export interface DriversPagination {

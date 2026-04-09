@@ -133,13 +133,12 @@ export function DataTable({
   ].filter((value) => value !== "all").length;
 
   const hasActiveFilters =
-    filters.status !== "all" ||
-    Boolean(filters.date) ||
-    Boolean(filters.rideCount) ||
-    filters.sortBy !== "asc" ||
-        filters.state !== "all"; // ✅ ADD  
-
-    searchQuery !== "";
+  filters.status !== "all" ||
+  Boolean(filters.date) ||
+  Boolean(filters.rideCount) ||
+  filters.sortBy !== "asc" ||
+  filters.state !== "all" ||
+  searchQuery !== "";
 
   return (
     <div className="space-y-4">
@@ -302,22 +301,33 @@ export function DataTable({
               </div>
             </div>
 
-            <select className="w-full border p-2 rounded-md"
-  value={draftFilters.state || "all"} // ✅ IMPORTANT
-  onChange={(e) =>
-    setDraftFilters({
-      ...draftFilters,
-      state: e.target.value,
-    })
-  }
->
-  <option value="all">All States</option>
-  {US_STATES.map((state) => (
-    <option key={state} value={state}>
-      {state}
-    </option>
-  ))}
-</select>
+           <div className="space-y-2">
+  <Label className="text-sm text-black block">State</Label>
+
+  <Select
+    value={draftFilters.state || "all"} // ✅ controlled
+    onValueChange={(value) =>
+      setDraftFilters({
+        ...draftFilters,
+        state: value, // ✅ updates draft only
+      })
+    }
+  >
+    <SelectTrigger className="w-full">
+      <SelectValue placeholder="Select state" />
+    </SelectTrigger>
+
+    <SelectContent>
+      <SelectItem value="all">All States</SelectItem>
+
+      {US_STATES.map((state) => (
+        <SelectItem key={state} value={state}>
+          {state}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
 
             <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
               {activeFilterCount > 0
@@ -370,8 +380,15 @@ export function DataTable({
                   <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-center">Total Rides</TableHead>
-                  <TableHead className="text-right">
+                 
+                   <TableHead className="text-right">
+                   State
+                  </TableHead>
+                   <TableHead className="text-right">
                     Registration Date
+                  </TableHead>
+                  <TableHead className="text-right">
+                    Action
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -440,6 +457,11 @@ export function DataTable({
                             {passenger.totalRides}
                           </span>
                         </TableCell>
+                        <TableCell className="text-center">
+  <span className="text-black">
+    {passenger?.state || "-"}
+  </span>
+</TableCell>
                         <TableCell className="text-right">
                           <span className="text-black">
                             {formatDate(passenger.regDate)}

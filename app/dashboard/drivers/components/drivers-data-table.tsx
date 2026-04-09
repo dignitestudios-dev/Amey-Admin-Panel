@@ -329,26 +329,35 @@ export function DriversDataTable({
                   </SelectContent>
                 </Select>
               </div>
-                
+                <div className="space-y-2">
+  <Label className="text-sm text-black block">State</Label>
+
+  <Select
+    value={draftFilters.state || "all"} // ✅ controlled
+    onValueChange={(value) =>
+      setDraftFilters({
+        ...draftFilters,
+        state: value, // ✅ updates draft only
+      })
+    }
+  >
+    <SelectTrigger className="w-full">
+      <SelectValue placeholder="Select state" />
+    </SelectTrigger>
+
+    <SelectContent>
+      <SelectItem value="all">All States</SelectItem>
+
+      {US_STATES.map((state) => (
+        <SelectItem key={state} value={state}>
+          {state}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
             </div>
 
-           <select
-         className="w-full border rounded-md p-2"
-  value={draftFilters.state || "all"}   // ✅ use draft state
-  onChange={(e) =>
-    setDraftFilters({
-      ...draftFilters,
-      state: e.target.value,
-    })
-  }
->
-  <option value="all">All States</option>
-  {US_STATES.map((state) => (
-    <option key={state} value={state}>
-      {state}
-    </option>
-  ))}
-</select>
             
 
             <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
@@ -453,6 +462,8 @@ export function DriversDataTable({
                 <TableRow className="h-16 border-none rounded-2xl!">
                   <TableHead>Name</TableHead>
                   <TableHead>Status</TableHead>
+                                    <TableHead className="text-center">State</TableHead>
+
                   <TableHead className="text-center">Rating</TableHead>
                   <TableHead className="text-center">Total Rides</TableHead>
                   <TableHead className="text-right">Earnings</TableHead>
@@ -493,6 +504,11 @@ export function DriversDataTable({
                           {driver.status}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-center font-light">
+  <span className="text-black">
+    {driver?.state || "-"}
+  </span>
+</TableCell>
                       <TableCell className="text-center font-light">
                         <span className="text-black">
                           <Star className="w-4 h-4 inline mr-1 mb-1 text-yellow-500" />
