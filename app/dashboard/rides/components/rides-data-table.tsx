@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/table";
 import type { Ride, RideFilters, RideStatus, RideType } from "@/lib/api/rides.api";
 import { useRouter } from "next/navigation";
+import { US_STATES } from "@/lib/constants/states";
 
 interface RidesDataTableProps {
   rides: Ride[];
@@ -127,9 +128,11 @@ export function RidesDataTable({
   const [draftFilters, setDraftFilters] = useState<RideFilters>(filters);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const router=useRouter();
-  const activeFilterCount = [filters.status, filters.rideType].filter(
-    (value) => value !== "all",
-  ).length;
+const activeFilterCount = [
+  filters.status,
+  filters.rideType,
+  filters.state, // ✅
+].filter((value) => value !== "all").length;
 
   const hasActiveFilters =
     filters.status !== "all" ||
@@ -176,8 +179,12 @@ export function RidesDataTable({
               size="sm"
               className="text-gray-600 hover:text-black"
               onClick={() => {
-                onFilterChange({ status: "all", rideType: "all", isOnGoing: true });
-                onSearchChange("");
+onFilterChange({
+  status: "all",
+  rideType: "all",
+  isOnGoing: true,
+  state: "all", // ✅
+});                onSearchChange("");
               }}
               title="Clear filters"
             >
@@ -251,12 +258,34 @@ export function RidesDataTable({
               </div>
             </div>
 
+         <select
+         className="w-full border rounded-md p-2"
+  value={draftFilters.state || "all"}   // ✅ use draft state
+  onChange={(e) =>
+    setDraftFilters({
+      ...draftFilters,
+      state: e.target.value,
+    })
+  }
+>
+  <option value="all">All States</option>
+  {US_STATES.map((state) => (
+    <option key={state} value={state}>
+      {state}
+    </option>
+  ))}
+</select>
+
             <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
               {activeFilterCount > 0
                 ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
                 : "No filters are currently applied."}
             </div>
+
+            
           </div>
+
+
 
           <DialogFooter className="border-t px-6 py-4 gap-2">
             <Button
@@ -266,6 +295,8 @@ export function RidesDataTable({
                   status: "all",
                   rideType: "all",
                   isOnGoing: true,
+                    state: "all", // ✅ add this
+
                 })
               }
             >

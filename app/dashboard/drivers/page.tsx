@@ -12,6 +12,7 @@ import {
   type DriverStatus,
 } from "@/lib/api/drivers.api";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface DriverFilters {
   status: "all" | DriverStatus;
@@ -19,6 +20,8 @@ interface DriverFilters {
   rating: string;
   rideCount: string;
   sortBy: "asc" | "desc";
+    state: string | "all"; // ✅ ADD
+
 }
 
 const Drivers = () => {
@@ -33,11 +36,16 @@ const Drivers = () => {
     rating: "",
     rideCount: "",
     sortBy: (searchParams.get("sortBy") as "asc" | "desc") || "asc",
+      state: (searchParams.get("state") as string) || "all", // ✅ ADD
+
   });
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [actionDriverId, setActionDriverId] = useState<string | null>(null);
+
+  const router = useRouter();
+
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -55,6 +63,8 @@ const Drivers = () => {
       search: debouncedSearchQuery.trim() || undefined,
       rating: filters.rating ? Number(filters.rating) : undefined,
       rideCount: filters.rideCount ? Number(filters.rideCount) : undefined,
+          state: filters.state === "all" ? undefined : filters.state, // ✅ ADD
+
       sortBy: filters.sortBy,
       page,
       limit,
@@ -78,10 +88,26 @@ const Drivers = () => {
     mutationFn: rejectDriver,
   });
 
-  const handleFilterChange = (nextFilters: DriverFilters) => {
-    setFilters(nextFilters);
-    setPage(1);
-  };
+ const handleFilterChange = (nextFilters: DriverFilters) => {
+  setFilters(nextFilters);
+  setPage(1);
+
+  const params = new URLSearchParams();
+
+  if (nextFilters.status !== "all") {
+    params.set("status", nextFilters.status);
+  }
+
+  if (nextFilters.sortBy) {
+    params.set("sortBy", nextFilters.sortBy);
+  }
+
+  if (nextFilters.state && nextFilters.state !== "all") {
+    params.set("state", nextFilters.state); // ✅ ADD
+  }
+
+  router.push(`?${params.toString()}`);
+};
 
   const handlePageChange = (nextPage: number) => {
     if (!pagination) {

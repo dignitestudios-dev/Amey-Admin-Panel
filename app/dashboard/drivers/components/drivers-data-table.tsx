@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/table";
 import type { Driver, DriverSecurityType, DriverStatus } from "@/lib/api/drivers.api";
 import { useRouter } from "next/navigation";
+import { US_STATES } from "@/lib/constants/states";
 
 
 interface DriverFilters {
@@ -50,6 +51,8 @@ interface DriverFilters {
   rating: string;
   rideCount: string;
   sortBy: "asc" | "desc";
+    state: string | "all"; // ✅ ADD
+
 }
 
 interface DriversDataTableProps {
@@ -118,6 +121,7 @@ export function DriversDataTable({
     filters.armedType,
     filters.rating || "all",
     filters.rideCount || "all",
+    filters.state || "all", // ✅ ADD
   ].filter((value) => value !== "all").length;
 
   const hasActiveFilters =
@@ -210,6 +214,7 @@ export function DriversDataTable({
                   rating: "",
                   rideCount: "",
                   sortBy: "asc",
+                  state: "all", // ✅ ADD
                 });
                 onSearchChange("");
               }}
@@ -324,7 +329,27 @@ export function DriversDataTable({
                   </SelectContent>
                 </Select>
               </div>
+                
             </div>
+
+           <select
+         className="w-full border rounded-md p-2"
+  value={draftFilters.state || "all"}   // ✅ use draft state
+  onChange={(e) =>
+    setDraftFilters({
+      ...draftFilters,
+      state: e.target.value,
+    })
+  }
+>
+  <option value="all">All States</option>
+  {US_STATES.map((state) => (
+    <option key={state} value={state}>
+      {state}
+    </option>
+  ))}
+</select>
+            
 
             <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
               {activeFilterCount > 0
@@ -332,6 +357,8 @@ export function DriversDataTable({
                 : "No filters are currently applied."}
             </div>
           </div>
+
+        
 
           <DialogFooter className="border-t px-6 py-4 gap-2">
             <Button
@@ -343,6 +370,7 @@ export function DriversDataTable({
                   rating: "",
                   rideCount: "",
                   sortBy: "asc",
+                  state: "all", // ✅ ADD
                 })
               }
             >

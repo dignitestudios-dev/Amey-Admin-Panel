@@ -10,6 +10,8 @@ import {
   type RideType,
 } from "@/lib/api/rides.api";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+
 
 const RidesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,6 +21,8 @@ const RidesPage = () => {
     status: (searchParams.get("status") as RideFilters["status"]) || "all",
     rideType: "all",
     isOnGoing: false,
+      state: (searchParams.get("state") as string) || "all", // ✅
+
   });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -32,10 +36,14 @@ const RidesPage = () => {
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
+  const router = useRouter();
+
+
   const queryParams = useMemo(() => {
     return {
       status: filters.status === "all" ? undefined : filters.status,
       rideType: filters.rideType === "all" ? undefined : filters.rideType,
+          state: filters.state === "all" ? undefined : filters.state, // ✅
       isOnGoing: false,
       search: debouncedSearchQuery.trim() || undefined,
       page,
@@ -53,9 +61,21 @@ const RidesPage = () => {
   const pagination = ridesQuery.data?.pagination;
 
   const handleFilterChange = (nextFilters: RideFilters) => {
-    setFilters(nextFilters);
-    setPage(1);
-  };
+  setFilters(nextFilters);
+  setPage(1);
+
+  const params = new URLSearchParams();
+
+  if (nextFilters.status && nextFilters.status !== "all") {
+    params.set("status", nextFilters.status);
+  }
+
+  if (nextFilters.state && nextFilters.state !== "all") {
+    params.set("state", nextFilters.state); // ✅
+  }
+
+  router.push(`?${params.toString()}`);
+};
 
   const handlePageChange = (nextPage: number) => {
     if (!pagination) {

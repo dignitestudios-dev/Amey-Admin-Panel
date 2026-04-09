@@ -9,12 +9,16 @@ import {
   togglePassengerRestrict,
   type AccountStatus,
 } from "@/lib/api/users.api";
+import { useRouter } from "next/navigation";
+
 
 interface PassengerFilters {
   status: "all" | AccountStatus;
   date: string;
   rideCount: string;
   sortBy: "asc" | "desc";
+  state: string | "all"; // ✅ ADD
+
 }
 
 export default function PassengersPage() {
@@ -26,6 +30,7 @@ export default function PassengersPage() {
     date: "",
     rideCount: "",
     sortBy: "asc",
+    state: "all", // ✅ ADD
   });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -40,17 +45,21 @@ export default function PassengersPage() {
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
-  const queryParams = useMemo(() => {
-    return {
-      status: filters.status === "all" ? undefined : filters.status,
-      search: debouncedSearchQuery.trim() || undefined,
-      date: filters.date || undefined,
-      rideCount: filters.rideCount ? Number(filters.rideCount) : undefined,
-      sortBy: filters.sortBy,
-      page,
-      limit,
-    };
-  }, [filters, debouncedSearchQuery, page, limit]);
+  const router = useRouter();
+
+
+ const queryParams = useMemo(() => {
+  return {
+    status: filters.status === "all" ? undefined : filters.status,
+    state: filters.state === "all" ? undefined : filters.state, // ✅ ADD
+    search: debouncedSearchQuery.trim() || undefined,
+    date: filters.date || undefined,
+    rideCount: filters.rideCount ? Number(filters.rideCount) : undefined,
+    sortBy: filters.sortBy,
+    page,
+    limit,
+  };
+}, [filters, debouncedSearchQuery, page, limit]);
 
   const passengersQuery = useQuery({
     queryKey: ["passengers", queryParams],
@@ -66,9 +75,25 @@ export default function PassengersPage() {
   });
 
   const handleFilterChange = (nextFilters: PassengerFilters) => {
-    setFilters(nextFilters);
-    setPage(1);
-  };
+  setFilters(nextFilters);
+  setPage(1);
+
+  const params = new URLSearchParams();
+
+  if (nextFilters.status !== "all") {
+    params.set("status", nextFilters.status);
+  }
+
+  if (nextFilters.sortBy) {
+    params.set("sortBy", nextFilters.sortBy);
+  }
+
+  if (nextFilters.state && nextFilters.state !== "all") {
+    params.set("state", nextFilters.state); // ✅ ADD
+  }
+
+  router.push(`?${params.toString()}`);
+};
 
   const handlePageChange = (nextPage: number) => {
     if (!pagination) {

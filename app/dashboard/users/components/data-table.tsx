@@ -34,12 +34,14 @@ import {
 } from "@/components/ui/table";
 import type { AccountStatus, Passenger } from "@/lib/api/users.api";
 import { useRouter } from "next/navigation";
+import { US_STATES } from "@/lib/constants/states";
 
 interface PassengerFilters {
   status: "all" | AccountStatus;
   date: string;
   rideCount: string;
   sortBy: "asc" | "desc";
+  state: string | "all"; // ✅ ADD
 }
 
 interface DataTableProps {
@@ -127,6 +129,7 @@ export function DataTable({
     filters.date || "all",
     filters.rideCount || "all",
     filters.sortBy,
+    filters.state, // ✅ ADD
   ].filter((value) => value !== "all").length;
 
   const hasActiveFilters =
@@ -134,6 +137,8 @@ export function DataTable({
     Boolean(filters.date) ||
     Boolean(filters.rideCount) ||
     filters.sortBy !== "asc" ||
+        filters.state !== "all"; // ✅ ADD  
+
     searchQuery !== "";
 
   return (
@@ -177,11 +182,12 @@ export function DataTable({
               className="text-gray-600 hover:text-black"
               onClick={() => {
                 onFilterChange({
-                  status: "all",
-                  date: "",
-                  rideCount: "",
-                  sortBy: "asc",
-                });
+  status: "all",
+  date: "",
+  rideCount: "",
+  sortBy: "asc",
+  state: "all", // ✅ REQUIRED
+});
                 onSearchChange("");
               }}
               title="Clear filters"
@@ -303,6 +309,23 @@ export function DataTable({
             </div>
           </div>
 
+          <select
+  value={draftFilters.state || "all"} // ✅ IMPORTANT
+  onChange={(e) =>
+    setDraftFilters({
+      ...draftFilters,
+      state: e.target.value,
+    })
+  }
+>
+  <option value="all">All States</option>
+  {US_STATES.map((state) => (
+    <option key={state} value={state}>
+      {state}
+    </option>
+  ))}
+</select>
+
           <DialogFooter className="border-t px-6 py-4 gap-2">
             <Button
               variant="outline"
@@ -312,6 +335,7 @@ export function DataTable({
                   date: "",
                   rideCount: "",
                   sortBy: "asc",
+                  state: "all", // ✅ ADD
                 })
               }
             >

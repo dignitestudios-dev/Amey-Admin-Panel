@@ -164,6 +164,8 @@ export interface RideFilters {
   status: "all" | RideStatus;
   rideType: "all" | RideType;
   isOnGoing: boolean;
+    state?: string | "all"; // ✅ add this
+
 }
 
 export interface GetRidesParams {
