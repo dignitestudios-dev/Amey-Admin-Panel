@@ -302,14 +302,7 @@ export function DataTable({
               </div>
             </div>
 
-            <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              {activeFilterCount > 0
-                ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
-                : "No filters are currently applied."}
-            </div>
-          </div>
-
-          <select
+            <select className="w-full border p-2 rounded-md"
   value={draftFilters.state || "all"} // ✅ IMPORTANT
   onChange={(e) =>
     setDraftFilters({
@@ -325,6 +318,17 @@ export function DataTable({
     </option>
   ))}
 </select>
+
+            <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              {activeFilterCount > 0
+                ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
+                : "No filters are currently applied."}
+            </div>
+
+
+          </div>
+
+          
 
           <DialogFooter className="border-t px-6 py-4 gap-2">
             <Button
