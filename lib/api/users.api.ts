@@ -22,6 +22,7 @@ export interface Passenger {
   state: string;
 }
 
+
 export interface PassengerProfile {
   id: string;
   fullName: string;

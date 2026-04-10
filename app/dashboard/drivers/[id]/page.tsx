@@ -659,11 +659,26 @@ export default function DriverDetailsPage() {
               </CardHeader>
 
               <div className="flex items-center pl-4 pb-0 gap-4 mb-4">
+ <div className="w-20 h-20 rounded-full border overflow-hidden flex items-center justify-center bg-muted text-sm font-semibold">
   <img
     src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/${driverInfo?.profileImageUrl}`}
     alt="Driver Profile"
-    className="w-20 h-20 rounded-full object-cover border"
+    className="w-full h-full object-cover"
+    onError={(e) => {
+      const parent = e.currentTarget.parentElement;
+      if (parent) {
+        parent.innerHTML = `${
+          driverInfo?.fullName
+            ?.split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2) || "-"
+        }`;
+      }
+    }}
   />
+</div>
 
   <div>
     <div className="text-lg font-semibold">

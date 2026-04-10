@@ -259,11 +259,21 @@ export default function RideDetailsPage() {
             </span>
           </InfoCell>
           <InfoCell label="Passenger ID" className="md:col-span-1 xl:col-span-2">
-            <span className="break-all">{passenger?.id ?? "-"}</span>
+            <Link 
+  href={`/dashboard/users/${passenger?.id}`} 
+  className="text-primary underline break-all"
+>
+  {driver?._id ?? "-"}
+</Link>
           </InfoCell>
           <InfoCell label="Driver ID" className="md:col-span-1 xl:col-span-2">
-            <span className="break-all">{driver?._id ?? "-"}</span>
-          </InfoCell>
+<Link 
+  href={`/dashboard/drivers/${driver?._id}`} 
+  className="text-primary underline break-all"
+>
+  {driver?._id ?? "-"}
+</Link>          </InfoCell>
+          
         </CardContent>
       </Card>
 
@@ -378,12 +388,17 @@ export default function RideDetailsPage() {
             <CardContent className="pt-6">
               {driver ? (
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <InfoCell
-                    label="Driver ID"
-                    className="md:col-span-2 xl:col-span-3"
-                  >
-                    <span className="break-all">{driver._id}</span>
-                  </InfoCell>
+                  <InfoCell 
+  label="Driver ID"
+  className="md:col-span-2 xl:col-span-3"
+>
+  <Link 
+    href={`/dashboard/drivers/${driver._id}`} 
+    className="text-primary underline break-all"
+  >
+    {driver._id}
+  </Link>
+</InfoCell>
                   <InfoCell label="Full Name">{driver.fullName ?? "-"}</InfoCell>
                   <InfoCell label="Email">{driver.email ?? "-"}</InfoCell>
                   <InfoCell label="Phone">{driver.phoneNumber ?? "-"}</InfoCell>
