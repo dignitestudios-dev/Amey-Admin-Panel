@@ -14,6 +14,8 @@ interface RideFilters {
   status: "all" | RideStatus;
   rideType: "all";
   isOnGoing: boolean;
+    state: string | "all"; // ✅ ADD THIS
+
 }
 
 const RidesPage = () => {
@@ -24,6 +26,8 @@ const RidesPage = () => {
     status: (searchParams.get("status") as RideFilters["status"]) || "all",
     rideType: "all",
     isOnGoing: true, // Always show ongoing rides
+      state: searchParams.get("state") || "all", // ✅ ADD
+
   });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -38,15 +42,16 @@ const RidesPage = () => {
   }, [searchQuery]);
 
   const queryParams = useMemo(() => {
-    return {
-      status: filters.status === "all" ? undefined : filters.status,
-      rideType: filters.rideType === "all" ? undefined : filters.rideType,
-      isOnGoing: true, // Always show ongoing rides
-      search: debouncedSearchQuery.trim() || undefined,
-      page,
-      limit,
-    };
-  }, [filters, debouncedSearchQuery, page, limit]);
+  return {
+    status: filters.status === "all" ? undefined : filters.status,
+    rideType: filters.rideType === "all" ? undefined : filters.rideType,
+    state: filters.state === "all" ? undefined : filters.state, // ✅ ADD
+    isOnGoing: true,
+    search: debouncedSearchQuery.trim() || undefined,
+    page,
+    limit,
+  };
+}, [filters, debouncedSearchQuery, page, limit]);
 
   const ridesQuery = useQuery({
     queryKey: ["rides", queryParams],
@@ -73,6 +78,19 @@ const RidesPage = () => {
     setLimit(nextLimit);
     setPage(1);
   };
+
+  useEffect(() => {
+  const stateParam = searchParams.get("state") || "all";
+  const statusParam = (searchParams.get("status") as RideStatus) || "all";
+
+  setFilters((prev) => ({
+    ...prev,
+    state: stateParam,
+    status: statusParam,
+  }));
+
+  setPage(1);
+}, [searchParams]);
 
   return (
     <div className="w-full">

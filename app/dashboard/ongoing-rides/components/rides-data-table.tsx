@@ -30,6 +30,7 @@ interface RideFilters {
   status: "all" | RideStatus;
   rideType: "all";
   isOnGoing: boolean;
+  state: string | "all"; // ✅ ADD THIS
 }
 
 interface RidesDataTableProps {

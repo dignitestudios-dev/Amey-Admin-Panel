@@ -173,6 +173,8 @@ export interface GetRidesParams {
   rideType?: RideType;
   isOnGoing?: boolean;
   search?: string;
+    state?: string; // ✅ REQUIRED
+
   page: number;
   limit: number;
 }

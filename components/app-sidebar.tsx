@@ -10,6 +10,7 @@ import {
   BarChart3,
   Bell,
   Motorbike,
+  MapPinHouse,
 } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -48,6 +49,11 @@ const data = {
     {
       label: "Manage",
       items: [
+         {
+          title: "States",
+          url: "/dashboard/states",
+          icon: MapPinHouse,
+        },
         {
           title: "Passengers",
           url: "/dashboard/users",
