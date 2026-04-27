@@ -353,7 +353,11 @@ export default function DriverDetailsPage() {
   const review = detailsQuery.data.review;
   const documents = review.documents;
   const driverInfo = review.driverInfo;
-  const isPendingStatus = review.accountStatus.toLowerCase() === "pending";
+  const isActionRequired =
+    review.accountStatus.toLowerCase() === "pending" ||
+    review.accountStatus.toLowerCase() === "onhold" ||
+    review.accountStatus.toLowerCase() === "rejected";
+  const isRejected = review.accountStatus.toLowerCase() === "rejected";
   const isActionPending = approveMutation.isPending || rejectMutation.isPending;
 
   return (
@@ -373,7 +377,7 @@ export default function DriverDetailsPage() {
             {formatStatus(review.accountStatus)}
           </Badge>
 
-          {isPendingStatus ? (
+          {isActionRequired ? (
             <>
               <Button
                 size="lg"
@@ -386,18 +390,20 @@ export default function DriverDetailsPage() {
                 )}
                 Approve
               </Button>
-              <Button
-                className="cursor-pointer"
-                size="lg"
-                variant="destructive"
-                onClick={() => setIsRejectDialogOpen(true)}
-                disabled={isActionPending || detailsQuery.isFetching}
-              >
-                {rejectMutation.isPending && (
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                )}
-                Reject
-              </Button>
+              {!isRejected && (
+                <Button
+                  className="cursor-pointer"
+                  size="lg"
+                  variant="destructive"
+                  onClick={() => setIsRejectDialogOpen(true)}
+                  disabled={isActionPending || detailsQuery.isFetching}
+                >
+                  {rejectMutation.isPending && (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  )}
+                  Reject
+                </Button>
+              )}
             </>
           ) : null}
         </div>
@@ -410,7 +416,6 @@ export default function DriverDetailsPage() {
             Complete review and document verification data for this driver.
           </CardDescription>
         </CardHeader>
-
 
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {/* <div className="rounded-lg border bg-card p-3">
@@ -477,9 +482,7 @@ export default function DriverDetailsPage() {
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">Verified</div>
             <div className="mt-1 text-sm font-medium">
-              <Badge
-                variant={driverInfo?.isVerified ? "default" : "secondary"}
-              >
+              <Badge variant={driverInfo?.isVerified ? "default" : "secondary"}>
                 {driverInfo?.isVerified ? "Yes" : "No"}
               </Badge>
             </div>
@@ -503,9 +506,7 @@ export default function DriverDetailsPage() {
           <div className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">Online Status</div>
             <div className="mt-1 text-sm font-medium">
-              <Badge
-                variant={driverInfo?.isOnline ? "default" : "secondary"}
-              >
+              <Badge variant={driverInfo?.isOnline ? "default" : "secondary"}>
                 {driverInfo?.isOnline ? "Online" : "Offline"}
               </Badge>
             </div>
@@ -549,9 +550,7 @@ export default function DriverDetailsPage() {
           </div>
 
           <div className="rounded-lg border bg-card p-3">
-            <div className="text-xs text-muted-foreground">
-              Security Option
-            </div>
+            <div className="text-xs text-muted-foreground">Security Option</div>
             <div className="mt-1 text-sm font-medium capitalize">
               {driverInfo?.rideSecurityOption || "-"}
             </div>
@@ -592,10 +591,6 @@ export default function DriverDetailsPage() {
               {formatDate(driverInfo?.updatedAt || null)}
             </div>
           </div> */}
-
-         
-
-
 
           {/* {driverInfo?.currentLocation && (
             <div className="rounded-lg border bg-card p-3 md:col-span-2">
@@ -659,41 +654,39 @@ export default function DriverDetailsPage() {
               </CardHeader>
 
               <div className="flex items-center pl-4 pb-0 gap-4 mb-4">
- <div className="w-20 h-20 rounded-full border overflow-hidden flex items-center justify-center bg-muted text-sm font-semibold">
-  <img
-    src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/${driverInfo?.profileImageUrl}`}
-    alt="Driver Profile"
-    className="w-full h-full object-cover"
-    onError={(e) => {
-      const parent = e.currentTarget.parentElement;
-      if (parent) {
-        parent.innerHTML = `${
-          driverInfo?.fullName
-            ?.split(" ")
-            .map((n) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2) || "-"
-        }`;
-      }
-    }}
-  />
-</div>
+                <div className="w-20 h-20 rounded-full border overflow-hidden flex items-center justify-center bg-muted text-sm font-semibold">
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/${driverInfo?.profileImageUrl}`}
+                    alt="Driver Profile"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `${
+                          driverInfo?.fullName
+                            ?.split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2) || "-"
+                        }`;
+                      }
+                    }}
+                  />
+                </div>
 
-  <div>
-    <div className="text-lg font-semibold">
-      {driverInfo?.fullName || "-"}
-    </div>
-    <div className="text-sm text-muted-foreground">
-      {driverInfo?.email || "-"}
-    </div>
-  </div>
-</div>
+                <div>
+                  <div className="text-lg font-semibold">
+                    {driverInfo?.fullName || "-"}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {driverInfo?.email || "-"}
+                  </div>
+                </div>
+              </div>
               <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-md bg-muted/50 px-3 py-2">
-                  <div className="text-xs text-muted-foreground">
-                    Full Name
-                  </div>
+                  <div className="text-xs text-muted-foreground">Full Name</div>
                   <div className="mt-1 text-sm font-medium">
                     {driverInfo?.fullName || "-"}
                   </div>
@@ -855,9 +848,7 @@ export default function DriverDetailsPage() {
                   <div className="mt-1 text-sm font-medium">
                     <Badge
                       variant={
-                        driverInfo?.isProfileCompleted
-                          ? "default"
-                          : "secondary"
+                        driverInfo?.isProfileCompleted ? "default" : "secondary"
                       }
                     >
                       {driverInfo?.isProfileCompleted ? "Yes" : "No"}
@@ -899,8 +890,8 @@ export default function DriverDetailsPage() {
               <CardHeader>
                 <CardTitle>Application Summary</CardTitle>
                 <CardDescription>
-                  Quick status and submitted document checklist. Click any item to
-                  view details.
+                  Quick status and submitted document checklist. Click any item
+                  to view details.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
