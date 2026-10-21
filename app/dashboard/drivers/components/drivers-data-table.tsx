@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
-  Eye,
   Check,
   X,
   Loader2,
@@ -11,17 +9,12 @@ import {
   Filter,
   RotateCcw,
   Star,
+  CarTaxiFront,
+  CheckCircle2,
 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +26,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -40,19 +40,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { TableEmptyState, TableErrorState } from "@/components/ui/table-empty-state";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Driver, DriverSecurityType, DriverStatus } from "@/lib/api/drivers.api";
 import { useRouter } from "next/navigation";
 import { US_STATES } from "@/lib/constants/states";
 
-
-interface DriverFilters {
+export interface DriverFilters {
   status: "all" | DriverStatus;
   armedType: "all" | DriverSecurityType;
   rating: string;
   rideCount: string;
   sortBy: "asc" | "desc";
-    state: string | "all"; // ✅ ADD
-
+  state: string | "all";
 }
 
 interface DriversDataTableProps {
@@ -76,18 +78,26 @@ interface DriversDataTableProps {
   onRefresh: () => void;
 }
 
+const getInitials = (name: string) => {
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
 const getStatusColor = (status: DriverStatus) => {
   switch (status) {
     case "approved":
-      return "text-green-700 bg-green-700/10 border-green-700/10";
+      return "text-emerald-700 bg-emerald-700/10 border-emerald-700/20 dark:text-emerald-400 dark:bg-emerald-400/10";
     case "pending":
-      return "text-amber-700 bg-amber-700/10 border-amber-700/10";
+      return "text-amber-700 bg-amber-700/10 border-amber-700/20 dark:text-amber-400 dark:bg-amber-400/10";
     case "rejected":
-      return "text-red-700 bg-red-700/10 border-red-700/10";
+      return "text-red-700 bg-red-700/10 border-red-700/20 dark:text-red-400 dark:bg-red-400/10";
     case "suspended":
-      return "text-orange-700 bg-orange-700/10 border-orange-700/10";
+      return "text-orange-700 bg-orange-700/10 border-orange-700/20 dark:text-orange-400 dark:bg-orange-400/10";
     default:
-      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+      return "text-muted-foreground bg-muted border-border";
   }
 };
 
@@ -109,19 +119,32 @@ export function DriversDataTable({
   onApproveDriver,
   onRejectDriver,
   actionDriverId,
+  onRefresh,
 }: DriversDataTableProps) {
   const [draftFilters, setDraftFilters] = useState<DriverFilters>(filters);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
+  const [selectedDriverForReject, setSelectedDriverForReject] = useState<{ id: string; name: string } | null>(null);
+  const [approveConfirmModal, setApproveConfirmModal] = useState<{
+    open: boolean;
+    driverId: string;
+    driverName: string;
+  }>({
+    open: false,
+    driverId: "",
+    driverName: "",
+  });
+
   const router = useRouter();
+
   const activeFilterCount = [
     filters.status,
     filters.armedType,
     filters.rating || "all",
     filters.rideCount || "all",
-    filters.state || "all", // ✅ ADD
+    filters.state || "all",
+    filters.sortBy !== "asc" ? filters.sortBy : "all",
   ].filter((value) => value !== "all").length;
 
   const hasActiveFilters =
@@ -129,74 +152,64 @@ export function DriversDataTable({
     filters.armedType !== "all" ||
     Boolean(filters.rating) ||
     Boolean(filters.rideCount) ||
+    filters.sortBy !== "asc" ||
+    filters.state !== "all" ||
     searchQuery !== "";
 
-  const renderActionButtons = (driver: Driver) => {
-    if (driver.status !== "pending") {
-      return null;
-    }
-
-    const isActionPending = actionDriverId === driver.id;
-
-    return (
-      <div className="flex gap-1">
-        <Button
-          size="sm"
-          variant="default"
-          className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700 text-white"
-          title="Approve"
-          onClick={() => onApproveDriver(driver.id)}
-          disabled={isActionPending || isFetching}
-        >
-          {isActionPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          className="h-8 w-8 p-0"
-          title="Reject"
-          onClick={() => {
-            setSelectedDriverId(driver.id);
-            setRejectReason("");
-            setIsRejectDialogOpen(true);
-          }}
-          disabled={isActionPending || isFetching}
-        >
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
-    );
+  const handleClearFilters = () => {
+    onFilterChange({
+      status: "all",
+      armedType: "all",
+      rating: "",
+      rideCount: "",
+      sortBy: "asc",
+      state: "all",
+    });
+    onSearchChange("");
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span />
+      {/* Search & Filter Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm text-muted-foreground font-medium">
+          {total > 0 && `${total.toLocaleString()} total drivers`}
+        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-72">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-64 sm:w-72">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search drivers..."
-              className="pl-10 h-9 text-sm border border-gray-200 bg-white"
+              className="pl-9 pr-8 h-9 text-xs sm:text-sm bg-card border-border/80 focus:ring-primary/20"
               value={searchQuery}
               onChange={(event) => onSearchChange(event.target.value)}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="h-9 w-9 p-0 border border-gray-200 relative"
+            className="h-9 w-9 p-0 border-border/80 relative text-foreground hover:bg-muted"
             onClick={() => {
               setDraftFilters(filters);
               setIsFilterOpen(true);
             }}
             title="Open filters"
           >
-            <Filter className="w-4 h-4 text-gray-700" />
+            <Filter className="h-4 w-4" />
             {activeFilterCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 h-4 min-w-4 rounded-full bg-black px-1 text-[10px] leading-4 text-white">
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white shadow-xs">
                 {activeFilterCount}
               </span>
             )}
@@ -206,26 +219,18 @@ export function DriversDataTable({
             <Button
               variant="ghost"
               size="sm"
-              className="text-gray-600 hover:text-black"
-              onClick={() => {
-                onFilterChange({
-                  status: "all",
-                  armedType: "all",
-                  rating: "",
-                  rideCount: "",
-                  sortBy: "asc",
-                  state: "all", // ✅ ADD
-                });
-                onSearchChange("");
-              }}
-              title="Clear filters"
+              className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
+              onClick={handleClearFilters}
+              title="Reset all filters"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+              Reset
             </Button>
           )}
         </div>
       </div>
 
+      {/* Filter Modal */}
       <Dialog
         open={isFilterOpen}
         onOpenChange={(open) => {
@@ -235,46 +240,74 @@ export function DriversDataTable({
           setIsFilterOpen(open);
         }}
       >
-        <DialogContent className="sm:max-w-140 p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden rounded-2xl border bg-card">
           <DialogHeader className="border-b bg-muted/30 px-6 py-5">
-            <DialogTitle className="text-black">Filter Drivers</DialogTitle>
-            <DialogDescription>
-              Select your criteria and save to apply all filters at once.
+            <DialogTitle className="text-foreground text-lg">Filter Drivers</DialogTitle>
+            <DialogDescription className="text-xs">
+              Select criteria and save to apply all filters at once.
             </DialogDescription>
           </DialogHeader>
-          <div className="px-6 py-5 space-y-5">
+
+          <div className="px-6 py-5 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Status</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">Status</Label>
                 <Select
                   value={draftFilters.status}
                   onValueChange={(value) =>
-                    setDraftFilters({ ...draftFilters, status: value as DriverFilters["status"] })
+                    setDraftFilters({
+                      ...draftFilters,
+                      status: value as DriverFilters["status"],
+                    })
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
-                    <SelectItem value="onHold">On Hold</SelectItem>
                     <SelectItem value="suspended">Suspended</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Sort Order</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">Security Type</Label>
+                <Select
+                  value={draftFilters.armedType}
+                  onValueChange={(value) =>
+                    setDraftFilters({
+                      ...draftFilters,
+                      armedType: value as DriverFilters["armedType"],
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Security Types</SelectItem>
+                    <SelectItem value="armed">Armed</SelectItem>
+                    <SelectItem value="unarmed">Unarmed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">Sort Order</Label>
                 <Select
                   value={draftFilters.sortBy}
                   onValueChange={(value) =>
-                    setDraftFilters({ ...draftFilters, sortBy: value as "asc" | "desc" })
+                    setDraftFilters({
+                      ...draftFilters,
+                      sortBy: value as "asc" | "desc",
+                    })
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -284,95 +317,79 @@ export function DriversDataTable({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Minimum Rating</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">Minimum Rating</Label>
                 <Input
                   type="number"
                   min={0}
                   max={5}
-                  step="0.1"
+                  step={0.1}
+                  className="text-xs"
                   value={draftFilters.rating}
-                  placeholder="e.g. 2"
+                  placeholder="e.g. 4.5"
                   onChange={(event) =>
-                    setDraftFilters({ ...draftFilters, rating: event.target.value })
+                    setDraftFilters({
+                      ...draftFilters,
+                      rating: event.target.value,
+                    })
                   }
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Minimum Rides</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">Minimum Rides</Label>
                 <Input
                   type="number"
                   min={0}
+                  className="text-xs"
                   value={draftFilters.rideCount}
-                  placeholder="e.g. 1"
+                  placeholder="e.g. 10"
                   onChange={(event) =>
-                    setDraftFilters({ ...draftFilters, rideCount: event.target.value })
+                    setDraftFilters({
+                      ...draftFilters,
+                      rideCount: event.target.value,
+                    })
                   }
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Armed Type</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">State</Label>
                 <Select
-                  value={draftFilters.armedType}
+                  value={draftFilters.state || "all"}
                   onValueChange={(value) =>
-                    setDraftFilters({ ...draftFilters, armedType: value as DriverFilters["armedType"] })
+                    setDraftFilters({
+                      ...draftFilters,
+                      state: value,
+                    })
                   }
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
+                  <SelectTrigger className="w-full text-xs">
+                    <SelectValue placeholder="Select state" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="armed">Armed</SelectItem>
-                    <SelectItem value="unarmed">Unarmed</SelectItem>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="all">All States</SelectItem>
+                    {US_STATES.map((state) => (
+                      <SelectItem key={state} value={state}>
+                        {state}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-                <div className="space-y-2">
-  <Label className="text-sm text-black block">State</Label>
-
-  <Select
-    value={draftFilters.state || "all"} // ✅ controlled
-    onValueChange={(value) =>
-      setDraftFilters({
-        ...draftFilters,
-        state: value, // ✅ updates draft only
-      })
-    }
-  >
-    <SelectTrigger className="w-full">
-      <SelectValue placeholder="Select state" />
-    </SelectTrigger>
-
-    <SelectContent>
-      <SelectItem value="all">All States</SelectItem>
-
-      {US_STATES.map((state) => (
-        <SelectItem key={state} value={state}>
-          {state}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
             </div>
 
-            
-
-            <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
               {activeFilterCount > 0
                 ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
                 : "No filters are currently applied."}
             </div>
           </div>
 
-        
-
-          <DialogFooter className="border-t px-6 py-4 gap-2">
+          <DialogFooter className="border-t bg-muted/10 px-6 py-4 gap-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={() =>
                 setDraftFilters({
                   status: "all",
@@ -380,207 +397,287 @@ export function DriversDataTable({
                   rating: "",
                   rideCount: "",
                   sortBy: "asc",
-                  state: "all", // ✅ ADD
+                  state: "all",
                 })
               }
             >
-              Reset
+              Reset All
             </Button>
-            <Button variant="outline" onClick={() => setIsFilterOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => setIsFilterOpen(false)}>
               Cancel
             </Button>
             <Button
+              size="sm"
+              className="bg-primary hover:bg-primary/90 text-white hover:text-white transition-colors"
               onClick={() => {
                 onFilterChange(draftFilters);
                 setIsFilterOpen(false);
               }}
             >
-              Save
+              Apply Filters
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Reject Reason Confirmation Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md p-6 rounded-2xl border bg-card">
           <DialogHeader>
-            <DialogTitle>Reject Driver</DialogTitle>
-            <DialogDescription>
-              Provide a rejection reason. This is required to reject the driver.
+            <DialogTitle className="text-lg font-semibold text-foreground">Reject Driver Application</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Please provide a specific reason for rejecting{" "}
+              <span className="font-semibold text-foreground">
+                {selectedDriverForReject?.name || "this driver"}
+              </span>
+              . This explanation will be recorded.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2">
-            <Label htmlFor="reject-reason">Reason</Label>
+          <div className="space-y-2 py-3">
+            <Label htmlFor="reject-reason" className="text-xs font-medium text-foreground">
+              Rejection Reason <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="reject-reason"
               value={rejectReason}
               onChange={(event) => setRejectReason(event.target.value)}
-              placeholder="Enter rejection reason"
+              placeholder="e.g. Incomplete background check, expired documents"
+              className="text-xs focus:ring-destructive/20"
             />
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-2 pt-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => {
                 setIsRejectDialogOpen(false);
                 setRejectReason("");
-                setSelectedDriverId(null);
+                setSelectedDriverForReject(null);
               }}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
+              size="sm"
+              className="bg-red-600 hover:bg-red-700 text-white hover:text-white transition-colors"
               disabled={
                 !rejectReason.trim() ||
-                !selectedDriverId ||
-                Boolean(actionDriverId && actionDriverId === selectedDriverId)
+                !selectedDriverForReject ||
+                Boolean(actionDriverId && actionDriverId === selectedDriverForReject.id)
               }
               onClick={() => {
-                if (!selectedDriverId || !rejectReason.trim()) {
+                if (!selectedDriverForReject || !rejectReason.trim()) {
                   return;
                 }
-
-                onRejectDriver(selectedDriverId, rejectReason.trim());
+                onRejectDriver(selectedDriverForReject.id, rejectReason.trim());
                 setIsRejectDialogOpen(false);
                 setRejectReason("");
-                setSelectedDriverId(null);
+                setSelectedDriverForReject(null);
               }}
             >
-              Reject
+              {actionDriverId === selectedDriverForReject?.id ? (
+                <>
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                  Rejecting...
+                </>
+              ) : (
+                "Confirm Rejection"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Card className="shadow-none border-none pt-0 rounded-md overflow-hidden bg-white">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-gray-50 rounded-2xl!">
-                <TableRow className="h-16 border-none rounded-2xl!">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                                    <TableHead className="text-center">State</TableHead>
+      {/* Unified Table Card */}
+      <div className="rounded-xl border border-border/80 bg-card text-card-foreground shadow-2xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Driver</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-center">State</TableHead>
+                <TableHead className="text-center">Rating</TableHead>
+                <TableHead className="text-center">Total Rides</TableHead>
+                <TableHead className="text-right">Earnings</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableSkeleton columns={7} rows={limit} />
+              ) : error ? (
+                <TableErrorState colSpan={7} error={error} onRetry={onRefresh} />
+              ) : drivers.length > 0 ? (
+                drivers.map((driver) => {
+                  const isActionPending = actionDriverId === driver.id;
+                  const isPending = driver.status === "pending";
 
-                  <TableHead className="text-center">Rating</TableHead>
-                  <TableHead className="text-center">Total Rides</TableHead>
-                  <TableHead className="text-right">Earnings</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow >
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Loading drivers...
-                    </TableCell>
-                  </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-red-600">
-                      {error}
-                    </TableCell>
-                  </TableRow>
-                ) : drivers.length > 0 ? (
-                  drivers.map((driver) => (
+                  return (
                     <TableRow
-                     onClick={()=>router.push(`/dashboard/drivers/${driver.id}`)}
                       key={driver.id}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => router.push(`/dashboard/drivers/${driver.id}`)}
+                      className="cursor-pointer transition-colors"
                     >
                       <TableCell>
-                        <div>
-                          <p>{driver.name || "Unnamed driver"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {driver.id}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9 shrink-0 border border-border/60">
+                            <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+                              {getInitials(driver.name || "D")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground truncate">
+                              {driver.name || "Unnamed Driver"}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              ID: {driver.id}
+                            </p>
+                          </div>
                         </div>
                       </TableCell>
+
                       <TableCell>
                         <Badge
-                          className={`text-xs rounded-full px-2 py-0.5 ${getStatusColor(driver.status)}`}
+                          variant="outline"
+                          className={`text-xs capitalize font-medium rounded-full px-2.5 py-0.5 border ${getStatusColor(
+                            driver.status
+                          )}`}
                         >
                           {driver.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center font-light">
-  <span className="text-black">
-    {driver?.state || "-"}
-  </span>
-</TableCell>
-                      <TableCell className="text-center font-light">
-                        <span className="text-black">
-                          <Star className="w-4 h-4 inline mr-1 mb-1 text-yellow-500" />
-                          {driver.rating}
+
+                      <TableCell className="text-center text-muted-foreground">
+                        {driver?.state || "-"}
+                      </TableCell>
+
+                      <TableCell className="text-center font-medium text-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          {driver.rating ? Number(driver.rating).toFixed(1) : "0.0"}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-black">{driver.totalRides}</span>
+
+                      <TableCell className="text-center font-medium text-foreground">
+                        {driver.totalRides.toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-black">${driver.earnings.toLocaleString()}</span>
+
+                      <TableCell className="text-right font-medium text-foreground">
+                        ${driver.earnings.toLocaleString()}
                       </TableCell>
-                     
+
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end items-center gap-1.5">
+                          {isPending ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-8 w-8 p-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs"
+                                title="Approve driver"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setApproveConfirmModal({
+                                    open: true,
+                                    driverId: driver.id,
+                                    driverName: driver.name || "this driver",
+                                  });
+                                }}
+                                disabled={isActionPending || isFetching}
+                              >
+                                {isActionPending ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-8 w-8 p-0 rounded-lg shadow-2xs"
+                                title="Reject driver"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedDriverForReject({
+                                    id: driver.id,
+                                    name: driver.name || "this driver",
+                                  });
+                                  setRejectReason("");
+                                  setIsRejectDialogOpen(true);
+                                }}
+                                disabled={isActionPending || isFetching}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/dashboard/drivers/${driver.id}`);
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <p className="text-muted-foreground">
-                        No drivers found matching filters
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
-        <div className="text-sm text-muted-foreground">Total: {total} drivers</div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="page-size">Rows</Label>
-            <Select value={String(limit)} onValueChange={(value) => onPageSizeChange(Number(value))}>
-              <SelectTrigger id="page-size" className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="30">30</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="text-sm">Page {page} of {totalPages || 1}</div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1 || isFetching}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= (totalPages || 1) || isFetching}
-            >
-              Next
-            </Button>
-          </div>
+                  );
+                })
+              ) : (
+                <TableEmptyState
+                  colSpan={7}
+                  icon={CarTaxiFront}
+                  title="No drivers found"
+                  description={
+                    hasActiveFilters
+                      ? "No drivers match your active filters or search term."
+                      : "There are currently no driver accounts registered in the platform."
+                  }
+                  actionLabel={hasActiveFilters ? "Clear all filters" : undefined}
+                  onAction={handleClearFilters}
+                />
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
+
+      {/* Unified Pagination */}
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        limit={limit}
+        total={total}
+        entityLabel="drivers"
+        isFetching={isFetching}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
+
+      {/* Approve Driver Confirmation Modal */}
+      <ConfirmDialog
+        open={approveConfirmModal.open}
+        onOpenChange={(open) => setApproveConfirmModal((prev) => ({ ...prev, open }))}
+        title="Approve Driver Application"
+        description={`Are you sure you want to approve ${approveConfirmModal.driverName}? Once approved, they will be activated and authorized to accept passenger rides immediately.`}
+        confirmText="Approve Driver"
+        variant="primary"
+        icon={CheckCircle2}
+        isLoading={Boolean(actionDriverId && actionDriverId === approveConfirmModal.driverId)}
+        onConfirm={async () => {
+          await onApproveDriver(approveConfirmModal.driverId);
+          setApproveConfirmModal((prev) => ({ ...prev, open: false }));
+        }}
+      />
     </div>
   );
 }

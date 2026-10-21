@@ -1,18 +1,18 @@
 "use client";
 
-import StatesOverviewTable  from "./components/states-data-table";
+import StateCardsView from "./components/state-cards";
 
-export default function DashboardPage() {
+export default function StatesPage() {
   return (
     <div className="w-full space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-black">States</h1>
-        <p className="text-sm text-gray-500 mt-2">
-          Monitor platform activity across all states
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">States Overview</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Monitor platform activity, real-time ongoing rides, and registered users across all US states
         </p>
       </div>
 
-      <StatesOverviewTable />
+      <StateCardsView />
     </div>
   );
 }

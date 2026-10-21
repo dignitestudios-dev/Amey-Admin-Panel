@@ -1,11 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import {
+  Filter,
+  RotateCcw,
   Search,
+  Navigation,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,19 +35,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { TableEmptyState, TableErrorState } from "@/components/ui/table-empty-state";
+import { TablePagination } from "@/components/ui/table-pagination";
 import type { Ride, RideStatus } from "@/lib/api/rides.api";
 import { useRouter } from "next/navigation";
+import { US_STATES } from "@/lib/constants/states";
 
-interface RideFilters {
+export interface OngoingRideFilters {
   status: "all" | RideStatus;
   rideType: "all";
   isOnGoing: boolean;
-  state: string | "all"; // ✅ ADD THIS
+  state: string | "all";
 }
 
 interface RidesDataTableProps {
   rides: Ride[];
-  filters: RideFilters;
+  filters: OngoingRideFilters;
   searchQuery: string;
   page: number;
   limit: number;
@@ -44,9 +60,11 @@ interface RidesDataTableProps {
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
+  onFilterChange?: (filters: OngoingRideFilters) => void;
   onSearchChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (limit: number) => void;
+  onRefresh?: () => void;
 }
 
 const formatDateTime = (value: string) => {
@@ -81,23 +99,23 @@ const formatStatus = (value: string) => {
 const getStatusColor = (status: RideStatus) => {
   switch (status) {
     case "requested":
-      return "text-blue-700 bg-blue-700/10 border-blue-700/10";
+      return "text-blue-700 bg-blue-700/10 border-blue-700/20 dark:text-blue-400 dark:bg-blue-400/10";
     case "accepted":
-      return "text-indigo-700 bg-indigo-700/10 border-indigo-700/10";
+      return "text-indigo-700 bg-indigo-700/10 border-indigo-700/20 dark:text-indigo-400 dark:bg-indigo-400/10";
     case "on-the-way":
-      return "text-cyan-700 bg-cyan-700/10 border-cyan-700/10";
+      return "text-cyan-700 bg-cyan-700/10 border-cyan-700/20 dark:text-cyan-400 dark:bg-cyan-400/10";
     case "arrived":
-      return "text-purple-700 bg-purple-700/10 border-purple-700/10";
+      return "text-purple-700 bg-purple-700/10 border-purple-700/20 dark:text-purple-400 dark:bg-purple-400/10";
     case "in-progress":
-      return "text-amber-700 bg-amber-700/10 border-amber-700/10";
+      return "text-amber-700 bg-amber-700/10 border-amber-700/20 dark:text-amber-400 dark:bg-amber-400/10";
     case "completed":
-      return "text-green-700 bg-green-700/10 border-green-700/10";
+      return "text-emerald-700 bg-emerald-700/10 border-emerald-700/20 dark:text-emerald-400 dark:bg-emerald-400/10";
     case "cancelled":
-      return "text-red-700 bg-red-700/10 border-red-700/10";
+      return "text-red-700 bg-red-700/10 border-red-700/20 dark:text-red-400 dark:bg-red-400/10";
     case "expired":
-      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+      return "text-muted-foreground bg-muted border-border";
     default:
-      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+      return "text-muted-foreground bg-muted border-border";
   }
 };
 
@@ -112,146 +130,311 @@ export function RidesDataTable({
   isLoading,
   isFetching,
   error,
+  onFilterChange,
   onSearchChange,
   onPageChange,
   onPageSizeChange,
+  onRefresh,
 }: RidesDataTableProps) {
+  const [draftFilters, setDraftFilters] = useState<OngoingRideFilters>(filters);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const router = useRouter();
+
+  const activeFilterCount = [
+    filters.status,
+    filters.state,
+  ].filter((value) => value !== "all").length;
+
+  const hasActiveFilters =
+    filters.status !== "all" ||
+    (filters.state && filters.state !== "all") ||
+    searchQuery !== "";
+
+  const handleClearFilters = () => {
+    if (onFilterChange) {
+      onFilterChange({
+        status: "all",
+        rideType: "all",
+        isOnGoing: true,
+        state: "all",
+      });
+    }
+    onSearchChange("");
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span />
+      {/* Search & Filter Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm text-muted-foreground font-medium">
+          {total > 0 && `${total.toLocaleString()} active rides`}
+        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-72">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-64 sm:w-72">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search rides..."
-              className="pl-10 h-9 text-sm border border-gray-200 bg-white"
+              placeholder="Search ongoing rides..."
+              className="pl-9 pr-8 h-9 text-xs sm:text-sm bg-card border-border/80 focus:ring-primary/20"
               value={searchQuery}
               onChange={(event) => onSearchChange(event.target.value)}
             />
-          </div>
-        </div>
-      </div>
-
-      <Card className="shadow-none border-none pt-0 rounded-md overflow-hidden bg-white">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-gray-50 rounded-2xl!">
-                <TableRow className="h-16 border-none rounded-2xl!">
-                  <TableHead>Passenger</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Security</TableHead>
-                  <TableHead className="text-right">Fare</TableHead>
-                  <TableHead>Start Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      Loading rides...
-                    </TableCell>
-                  </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-red-600">
-                      {error}
-                    </TableCell>
-                  </TableRow>
-                ) : rides.length > 0 ? (
-                  rides.map((ride) => (
-                    <TableRow
-                      key={ride.id}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => router.push(`/dashboard/rides/${ride.id}`)}
-                    >
-                      <TableCell>
-                        <div>
-                          <p>{ride.passengerName || "Unknown passenger"}</p>
-                          <p className="text-xs text-muted-foreground">{ride.passengerEmail}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`text-xs rounded-full px-2 py-0.5 ${getStatusColor(ride.rideStatus)}`}
-                        >
-                          {formatStatus(ride.rideStatus)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatStatus(ride.rideCategory)}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p>{ride.city}</p>
-                          <p className="text-xs text-muted-foreground">{ride.state}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatStatus(ride.rideSecurity)}</TableCell>
-                      <TableCell className="text-right">${ride.actualFare.toFixed(2)}</TableCell>
-                      <TableCell>{formatDateTime(ride.startTime)}</TableCell>
-                     
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      <p className="text-muted-foreground">No rides found matching filters</p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
-        <div className="text-sm text-muted-foreground">Total: {total} rides</div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="page-size">Rows</Label>
-            <Select value={String(limit)} onValueChange={(value) => onPageSizeChange(Number(value))}>
-              <SelectTrigger id="page-size" className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="30">30</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="text-sm">Page {page} of {totalPages || 1}</div>
-
-          <div className="flex items-center gap-2">
+          {onFilterChange && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1 || isFetching}
+              className="h-9 w-9 p-0 border-border/80 relative text-foreground hover:bg-muted"
+              onClick={() => {
+                setDraftFilters(filters);
+                setIsFilterOpen(true);
+              }}
+              title="Open filters"
             >
-              Previous
+              <Filter className="h-4 w-4" />
+              {activeFilterCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white shadow-xs">
+                  {activeFilterCount}
+                </span>
+              )}
             </Button>
+          )}
+
+          {hasActiveFilters && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= (totalPages || 1) || isFetching}
+              className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
+              onClick={handleClearFilters}
+              title="Reset all filters"
             >
-              Next
+              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+              Reset
             </Button>
-          </div>
+          )}
         </div>
       </div>
+
+      {/* Filter Modal */}
+      {onFilterChange && (
+        <Dialog
+          open={isFilterOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDraftFilters(filters);
+            }
+            setIsFilterOpen(open);
+          }}
+        >
+          <DialogContent className="sm:max-w-lg p-0 overflow-hidden rounded-2xl border bg-card">
+            <DialogHeader className="border-b bg-muted/30 px-6 py-5">
+              <DialogTitle className="text-foreground text-lg">Filter Ongoing Rides</DialogTitle>
+              <DialogDescription className="text-xs">
+                Filter ongoing trips by status or state.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="px-6 py-5 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">Ride Status</Label>
+                <Select
+                  value={draftFilters.status}
+                  onValueChange={(value) =>
+                    setDraftFilters({ ...draftFilters, status: value as OngoingRideFilters["status"] })
+                  }
+                >
+                  <SelectTrigger className="w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Active Statuses</SelectItem>
+                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="on-the-way">On The Way</SelectItem>
+                    <SelectItem value="arrived">Arrived</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">State</Label>
+                <Select
+                  value={draftFilters.state || "all"}
+                  onValueChange={(value) =>
+                    setDraftFilters({
+                      ...draftFilters,
+                      state: value,
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full text-xs">
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="all">All States</SelectItem>
+                    {US_STATES.map((state) => (
+                      <SelectItem key={state} value={state}>
+                        {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+                {activeFilterCount > 0
+                  ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
+                  : "No filters are currently applied."}
+              </div>
+            </div>
+
+            <DialogFooter className="border-t bg-muted/10 px-6 py-4 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setDraftFilters({
+                    status: "all",
+                    rideType: "all",
+                    isOnGoing: true,
+                    state: "all",
+                  })
+                }
+              >
+                Reset All
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setIsFilterOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="bg-primary hover:bg-primary/90 text-white hover:text-white transition-colors"
+                onClick={() => {
+                  onFilterChange(draftFilters);
+                  setIsFilterOpen(false);
+                }}
+              >
+                Apply Filters
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Unified Table Card */}
+      <div className="rounded-xl border border-border/80 bg-card text-card-foreground shadow-2xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Passenger</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Security</TableHead>
+                <TableHead className="text-right">Fare</TableHead>
+                <TableHead className="text-right">Start Time</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableSkeleton columns={7} rows={limit} showAvatar={false} />
+              ) : error ? (
+                <TableErrorState colSpan={7} error={error} onRetry={onRefresh} />
+              ) : rides.length > 0 ? (
+                rides.map((ride) => (
+                  <TableRow
+                    key={ride.id}
+                    className="cursor-pointer transition-colors"
+                    onClick={() => router.push(`/dashboard/ongoing-rides/${ride.id}`)}
+                  >
+                    <TableCell>
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground truncate">
+                          {ride.passengerName || "Unknown Passenger"}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {ride.passengerEmail || "No email"}
+                        </p>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs capitalize font-medium rounded-full px-2.5 py-0.5 border ${getStatusColor(
+                          ride.rideStatus
+                        )}`}
+                      >
+                        {formatStatus(ride.rideStatus)}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell className="capitalize text-foreground font-medium">
+                      {formatStatus(ride.rideCategory)}
+                    </TableCell>
+
+                    <TableCell>
+                      <div>
+                        <p className="text-foreground font-medium">{ride.city || "-"}</p>
+                        <p className="text-xs text-muted-foreground">{ride.state || "-"}</p>
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="capitalize text-muted-foreground">
+                      {formatStatus(ride.rideSecurity)}
+                    </TableCell>
+
+                    <TableCell className="text-right font-semibold text-foreground">
+                      ${ride.actualFare.toFixed(2)}
+                    </TableCell>
+
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatDateTime(ride.startTime)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableEmptyState
+                  colSpan={7}
+                  icon={Navigation}
+                  title="No ongoing rides"
+                  description={
+                    hasActiveFilters
+                      ? "No ongoing rides match your filter settings or search query."
+                      : "There are currently no ongoing rides in progress."
+                  }
+                  actionLabel={hasActiveFilters ? "Clear all filters" : undefined}
+                  onAction={handleClearFilters}
+                />
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Unified Pagination */}
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        limit={limit}
+        total={total}
+        entityLabel="ongoing rides"
+        isFetching={isFetching}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
     </div>
   );
 }

@@ -139,9 +139,9 @@ export default function PassengersPage() {
 
   return (
     <div className="flex flex-col gap-4 @container/main   ">
-      <div className="">
-        <h1 className="text-3xl font-bold text-black">Passenger Management</h1>
-        <p className="text-sm text-gray-500 mt-2">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Passenger Management</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Manage passenger accounts, review statuses, and monitor ride activity
         </p>
       </div>

@@ -97,8 +97,8 @@ const RidesPage = () => {
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-black">Ride Management</h1>
-        <p className="text-sm text-gray-500 mt-2">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Ride Management</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Track rides, monitor statuses, and review route activity
         </p>
       </div>
@@ -124,6 +124,7 @@ const RidesPage = () => {
         }}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onRefresh={() => ridesQuery.refetch()}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   EllipsisVertical,
   LogOut,
@@ -26,6 +27,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function NavUser({
   user: _user,
@@ -40,6 +42,7 @@ export function NavUser({
   const dispatch = useDispatch();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem(AUTH_TOKEN_KEY);
@@ -51,48 +54,65 @@ export function NavUser({
   };
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild className="hover:bg-black/80 py-2!">
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-black/80 data-[state=open]:text-gray-200 cursor-pointer"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-                <Logo size={28} />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Amey Admin</span>
-              </div>
-              <EllipsisVertical className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal pb-3">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <div className="h-8 w-8 rounded-lg">
+    <>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild className="hover:bg-black/80 py-2!">
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-black/80 data-[state=open]:text-gray-200 cursor-pointer"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg">
                   <Logo size={28} />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">Amey Admin</span>
                 </div>
-              </div>
-            </DropdownMenuLabel>
+                <EllipsisVertical className="ml-auto size-4" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+              side={isMobile ? "bottom" : "right"}
+              align="end"
+              sideOffset={4}
+            >
+              <DropdownMenuLabel className="p-0 font-normal pb-3">
+                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <div className="h-8 w-8 rounded-lg">
+                    <Logo size={28} />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">Amey Admin</span>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
 
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setIsLogoutConfirmOpen(true)}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOut className="size-4" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
+
+      <ConfirmDialog
+        open={isLogoutConfirmOpen}
+        onOpenChange={setIsLogoutConfirmOpen}
+        title="Confirm Sign Out"
+        description="Are you sure you want to sign out of the Amey Admin Panel? You will need to log in again to access the dashboard."
+        confirmText="Log Out"
+        cancelText="Cancel"
+        variant="destructive"
+        icon={LogOut}
+        onConfirm={handleLogout}
+      />
+    </>
   );
 }

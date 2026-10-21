@@ -17,6 +17,7 @@ import {
   Shield,
   Sparkles,
   Wallet,
+  CarTaxiFront,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,6 +37,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { TableEmptyState } from "@/components/ui/table-empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -177,6 +180,7 @@ export default function PassengerDetailsPage() {
   const passengerId = params?.id;
   const [selectedRide, setSelectedRide] = useState<PassengerRideHistory | null>(null);
   const [isRideDialogOpen, setIsRideDialogOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const detailsQuery = useQuery({
     queryKey: ["passenger-details", passengerId],
@@ -278,7 +282,7 @@ export default function PassengerDetailsPage() {
                 ? "bg-green-600 hover:bg-green-700 text-white"
                 : "bg-red-600 hover:bg-red-700 text-white"
             }
-            onClick={handleToggleRestrict}
+            onClick={() => setIsConfirmOpen(true)}
             disabled={toggleRestrictMutation.isPending || detailsQuery.isFetching}
           >
             {toggleRestrictMutation.isPending ? (
@@ -407,9 +411,11 @@ export default function PassengerDetailsPage() {
             </CardHeader>
             <CardContent>
               {passenger.rideHistory.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  No ride history available.
-                </div>
+                <TableEmptyState
+                  icon={CarTaxiFront}
+                  title="No ride history available"
+                  description="This passenger has not completed or requested any rides yet."
+                />
               ) : (
                 <div className="rounded-lg border overflow-hidden">
                   <Table>
@@ -612,6 +618,25 @@ export default function PassengerDetailsPage() {
           ) : null}
         </DialogContent>
       </Dialog>
+      {profile ? (
+        <ConfirmDialog
+          open={isConfirmOpen}
+          onOpenChange={setIsConfirmOpen}
+          title={isOnHoldStatus ? "Unrestrict Passenger" : "Restrict Passenger"}
+          description={
+            isOnHoldStatus
+              ? `Are you sure you want to unrestrict ${profile.fullName}? Their account access will be restored and they can book rides immediately.`
+              : `Are you sure you want to restrict ${profile.fullName}? They will be suspended and unable to request or book rides.`
+          }
+          confirmText={isOnHoldStatus ? "Unrestrict" : "Restrict"}
+          variant={isOnHoldStatus ? "primary" : "destructive"}
+          isLoading={toggleRestrictMutation.isPending}
+          onConfirm={async () => {
+            await handleToggleRestrict();
+            setIsConfirmOpen(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

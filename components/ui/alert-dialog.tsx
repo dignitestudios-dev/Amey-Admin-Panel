@@ -143,7 +143,7 @@ function AlertDialogAction({
     <Button variant={variant} size={size} asChild>
       <AlertDialogPrimitive.Action
         data-slot="alert-dialog-action"
-        className={cn(className)}
+        className={cn("text-white hover:text-white", className)}
         {...props}
       />
     </Button>
@@ -158,10 +158,17 @@ function AlertDialogCancel({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Cancel> &
   Pick<React.ComponentProps<typeof Button>, "variant" | "size">) {
   return (
-    <Button variant={variant} size={size} asChild>
+    <Button
+      variant={variant}
+      size={size}
+      className={cn(
+        "border-border bg-card text-foreground hover:bg-muted hover:text-foreground",
+        className
+      )}
+      asChild
+    >
       <AlertDialogPrimitive.Cancel
         data-slot="alert-dialog-cancel"
-        className={cn(className)}
         {...props}
       />
     </Button>

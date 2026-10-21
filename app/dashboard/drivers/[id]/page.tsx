@@ -33,6 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   approveDriver,
@@ -238,6 +239,7 @@ export default function DriverDetailsPage() {
   const queryClient = useQueryClient();
   const driverId = params?.id;
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isApproveConfirmOpen, setIsApproveConfirmOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [activeTab, setActiveTab] = useState("summary");
 
@@ -382,7 +384,7 @@ export default function DriverDetailsPage() {
               <Button
                 size="lg"
                 className="bg-green-600 cursor-pointer hover:bg-green-700 text-white"
-                onClick={handleApprove}
+                onClick={() => setIsApproveConfirmOpen(true)}
                 disabled={isActionPending || detailsQuery.isFetching}
               >
                 {approveMutation.isPending && (
@@ -1079,6 +1081,7 @@ export default function DriverDetailsPage() {
             </Button>
             <Button
               variant="destructive"
+              className="bg-red-600 hover:bg-red-700 text-white hover:text-white transition-colors"
               disabled={
                 !rejectReason.trim() ||
                 isActionPending ||
@@ -1091,6 +1094,20 @@ export default function DriverDetailsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={isApproveConfirmOpen}
+        onOpenChange={setIsApproveConfirmOpen}
+        title="Approve Driver Application"
+        description={`Are you sure you want to approve ${driverInfo?.fullName || "this driver"}? Once approved, they will be active and authorized to accept rides on the platform.`}
+        confirmText="Approve Driver"
+        variant="primary"
+        isLoading={approveMutation.isPending}
+        onConfirm={async () => {
+          await handleApprove();
+          setIsApproveConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }

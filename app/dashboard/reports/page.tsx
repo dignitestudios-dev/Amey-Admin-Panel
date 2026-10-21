@@ -35,6 +35,9 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { TableEmptyState, TableErrorState } from "@/components/ui/table-empty-state";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   Table,
   TableBody,
@@ -364,169 +367,112 @@ export default function ReportsPage() {
         </div>
       )}
 
-      {revenueQuery.isLoading && !revenueQuery.data ? (
-        <RevenueTableSkeleton />
-      ) : (
-        <Card className="border-primary/10">
-          <CardHeader className="pb-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <CardTitle>Revenue Report</CardTitle>
-                <CardDescription>
-                  Complete trip-wise revenue records in a cleaner table layout.
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Shield className="size-4 text-primary" />
-                <span className="text-xs text-muted-foreground">
-                  Total records: {pagination?.total ?? revenueRows.length}
-                </span>
-              </div>
+      <Card className="rounded-xl border border-border/80 shadow-2xs overflow-hidden">
+        <CardHeader className="pb-3 border-b bg-muted/20">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg font-semibold tracking-tight text-foreground">Revenue Report</CardTitle>
+              <CardDescription className="text-xs">
+                Complete trip-wise revenue records and commissions.
+              </CardDescription>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {revenueQuery.isLoading ? (
-              <div className="rounded-lg border p-8 text-center text-sm text-muted-foreground">
-                Loading revenue report...
-              </div>
-            ) : revenueQuery.error ? (
-              <div className="rounded-lg border border-destructive/20 p-8 text-center text-sm text-destructive">
-                {revenueQuery.error instanceof Error
-                  ? revenueQuery.error.message
-                  : "Unable to load revenue report."}
-              </div>
-            ) : revenueRows.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                No revenue records found.
-              </div>
-            ) : (
-              <div className="rounded-md overflow-hidden bg-white">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-gray-50 rounded-2xl!">
-                      <TableRow className="h-16 border-none rounded-2xl!">
-                        <TableHead className="min-w-[190px]">Ride</TableHead>
-                        <TableHead className="min-w-[150px]">Date</TableHead>
-                        <TableHead className="min-w-[130px] text-right">Fare</TableHead>
-                        <TableHead className="min-w-[140px] text-right">Commission</TableHead>
-                        <TableHead className="min-w-[120px] text-right">Stripe Fee</TableHead>
-                        <TableHead className="min-w-[140px] text-right">Driver Amount</TableHead>
-                        <TableHead className="min-w-[280px]">Driver</TableHead>
-                        <TableHead className="min-w-[280px]">Passenger</TableHead>
+            <div className="flex items-center gap-2">
+              <Shield className="size-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">
+                Total records: {pagination?.total ?? revenueRows.length}
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
+          <div className="rounded-xl border border-border/80 bg-card text-card-foreground shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[190px]">Ride</TableHead>
+                    <TableHead className="min-w-[150px]">Date</TableHead>
+                    <TableHead className="min-w-[120px] text-right">Fare</TableHead>
+                    <TableHead className="min-w-[130px] text-right">Commission</TableHead>
+                    <TableHead className="min-w-[110px] text-right">Stripe Fee</TableHead>
+                    <TableHead className="min-w-[130px] text-right">Driver Amount</TableHead>
+                    <TableHead className="min-w-[240px]">Driver</TableHead>
+                    <TableHead className="min-w-[240px]">Passenger</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {revenueQuery.isLoading ? (
+                    <TableSkeleton columns={8} rows={limit} showAvatar={true} />
+                  ) : revenueQuery.error ? (
+                    <TableErrorState
+                      colSpan={8}
+                      error={
+                        revenueQuery.error instanceof Error
+                          ? revenueQuery.error.message
+                          : "Unable to load revenue report."
+                      }
+                      onRetry={() => revenueQuery.refetch()}
+                    />
+                  ) : revenueRows.length === 0 ? (
+                    <TableEmptyState
+                      colSpan={8}
+                      icon={DollarSign}
+                      title="No revenue records found"
+                      description="No trip revenue transactions recorded for the selected range."
+                    />
+                  ) : (
+                    revenueRows.map((row: RevenueReportItem) => (
+                      <TableRow key={row.rideId} className="transition-colors">
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Badge className="rounded-full border bg-primary/10 text-primary border-primary/20">Ride</Badge>
+                            <span className="text-xs font-medium break-all">{row.rideId || "-"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground font-medium">{formatDateTime(row.rideDate)}</TableCell>
+                        <TableCell className="text-right font-medium text-foreground">{formatCurrency(row.actualFare)}</TableCell>
+                        <TableCell className="text-right font-medium text-foreground">{formatCurrency(row.platformCommission)}</TableCell>
+                        <TableCell className="text-right font-medium text-muted-foreground">{formatCurrency(row.stripeFee)}</TableCell>
+                        <TableCell className="text-right font-semibold text-primary">{formatCurrency(row.driverAmount)}</TableCell>
+                        <TableCell>
+                          <PersonInfo
+                            fullName={row.driver.fullName}
+                            email={row.driver.email}
+                            phoneNumber={row.driver.phoneNumber}
+                            profileImageUrl={row.driver.profileImageUrl}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <PersonInfo
+                            fullName={row.passenger.fullName}
+                            email={row.passenger.email}
+                            phoneNumber={row.passenger.phoneNumber}
+                            profileImageUrl={row.passenger.profileImageUrl}
+                          />
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {revenueRows.map((row: RevenueReportItem) => (
-                        <TableRow key={row.rideId} className="hover:bg-gray-50 transition-colors">
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Badge className="rounded-full border bg-primary/10 text-primary border-primary/20">Ride</Badge>
-                              <span className="text-xs font-medium break-all">{row.rideId || "-"}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{formatDateTime(row.rideDate)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(row.actualFare)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(row.platformCommission)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(row.stripeFee)}</TableCell>
-                          <TableCell className="text-right font-semibold text-primary">{formatCurrency(row.driverAmount)}</TableCell>
-                          <TableCell>
-                            <PersonInfo
-                              fullName={row.driver.fullName}
-                              email={row.driver.email}
-                              phoneNumber={row.driver.phoneNumber}
-                              profileImageUrl={row.driver.profileImageUrl}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <PersonInfo
-                              fullName={row.passenger.fullName}
-                              email={row.passenger.email}
-                              phoneNumber={row.passenger.phoneNumber}
-                              profileImageUrl={row.passenger.profileImageUrl}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground">
-                Page {pagination?.page ?? page} of {pagination?.totalPages ?? 1}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Rows:</span>
-                <Select
-                  value={String(limit)}
-                  onValueChange={(value) => {
-                    setLimit(Number(value));
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="First page"
-                  onClick={() => setPage(1)}
-                  disabled={!canGoPrev || revenueQuery.isFetching}
-                >
-                  <ChevronsLeft className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="Previous page"
-                  onClick={() => setPage((previousPage) => Math.max(1, previousPage - 1))}
-                  disabled={!canGoPrev || revenueQuery.isFetching}
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="Next page"
-                  onClick={() =>
-                    setPage((previousPage) =>
-                      Math.min(pagination?.totalPages ?? previousPage + 1, previousPage + 1),
-                    )
-                  }
-                  disabled={!canGoNext || revenueQuery.isFetching}
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="Last page"
-                  onClick={() => setPage(pagination?.totalPages ?? 1)}
-                  disabled={!canGoNext || revenueQuery.isFetching}
-                >
-                  <ChevronsRight className="size-4" />
-                </Button>
-              </div>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+
+          <TablePagination
+            page={pagination?.page ?? page}
+            totalPages={pagination?.totalPages ?? 1}
+            limit={limit}
+            total={pagination?.total ?? revenueRows.length}
+            entityLabel="revenue records"
+            isFetching={revenueQuery.isFetching}
+            onPageChange={(nextPage) => setPage(nextPage)}
+            onPageSizeChange={(nextLimit) => {
+              setLimit(nextLimit);
+              setPage(1);
+            }}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

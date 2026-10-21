@@ -4,10 +4,6 @@ import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Bell,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Eye,
   Loader2,
   Plus,
@@ -34,14 +30,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
   Table,
   TableBody,
   TableCell,
@@ -50,6 +38,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { TableEmptyState, TableErrorState } from "@/components/ui/table-empty-state";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   createNotification,
   getNotifications,
@@ -75,18 +67,6 @@ const formatDateTime = (value: string) => {
   });
 };
 
-const NotificationsTableSkeleton = () => (
-  <Card className="border-primary/10">
-    <CardHeader className="pb-3">
-      <Skeleton className="h-5 w-52" />
-      <Skeleton className="h-4 w-72" />
-    </CardHeader>
-    <CardContent>
-      <Skeleton className="h-[360px] w-full" />
-    </CardContent>
-  </Card>
-);
-
 const truncateText = (value: string, maxLength: number) => {
   if (value.length <= maxLength) {
     return value;
@@ -99,6 +79,7 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isConfirmSendOpen, setIsConfirmSendOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -115,6 +96,7 @@ export default function NotificationsPage() {
     mutationFn: createNotification,
     onSuccess: async () => {
       toast.success("Notification sent successfully.");
+      setIsConfirmSendOpen(false);
       setIsCreateOpen(false);
       setTitle("");
       setMessage("");
@@ -131,20 +113,23 @@ export default function NotificationsPage() {
 
   const totalMessages = pagination?.total ?? notifications.length;
 
-  const canGoPrev = page > 1;
-  const canGoNext = page < (pagination?.totalPages ?? 1);
-
-  const handleCreateNotification = () => {
+  const handleOpenConfirm = () => {
     const sanitizedTitle = title.trim();
     const sanitizedMessage = message.trim();
 
     if (!sanitizedTitle || !sanitizedMessage) {
-      setFormError("Title and message are required.");
+      setFormError("Both title and message are required.");
       return;
     }
 
     setFormError(null);
-    createNotificationMutation.mutate({
+    setIsConfirmSendOpen(true);
+  };
+
+  const handleConfirmSend = async () => {
+    const sanitizedTitle = title.trim();
+    const sanitizedMessage = message.trim();
+    await createNotificationMutation.mutateAsync({
       title: sanitizedTitle,
       message: sanitizedMessage,
     });
@@ -156,264 +141,234 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 @container/main px-4 lg:px-6 mt-2 pb-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Notifications</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Notifications</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Create and review admin broadcast notifications.
+            Create, schedule, and review broadcast announcements to users and drivers.
           </p>
         </div>
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="inline-flex items-center gap-2">
+            <Button className="inline-flex items-center gap-2 rounded-lg font-medium shadow-2xs">
               <Plus className="size-4" />
               Create Notification
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Create Notification</DialogTitle>
-              <DialogDescription>
-                Send a notification to users from the admin panel.
+          <DialogContent className="sm:max-w-lg p-0 overflow-hidden rounded-2xl border bg-card">
+            <DialogHeader className="border-b bg-muted/30 px-6 py-5">
+              <DialogTitle className="text-foreground text-lg">Create Broadcast Notification</DialogTitle>
+              <DialogDescription className="text-xs">
+                Broadcast an important update or alert to all registered users.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="notification-title">Title</Label>
+            <div className="px-6 py-5 space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="notification-title" className="text-xs font-medium text-foreground">
+                  Notification Title <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="notification-title"
                   value={title}
                   maxLength={120}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Enter notification title"
+                  placeholder="e.g. Scheduled System Maintenance"
+                  className="text-xs focus:ring-primary/20"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notification-message">Message</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="notification-message" className="text-xs font-medium text-foreground">
+                  Message Body <span className="text-destructive">*</span>
+                </Label>
                 <Textarea
                   id="notification-message"
                   value={message}
                   maxLength={500}
                   onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Type notification message"
+                  placeholder="Write message details for platform users..."
                   rows={5}
+                  className="text-xs focus:ring-primary/20"
                 />
+                <div className="flex justify-end text-[11px] text-muted-foreground">
+                  {message.length} / 500 characters
+                </div>
               </div>
 
-              {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
+              {formError ? <p className="text-xs font-medium text-destructive">{formError}</p> : null}
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+            <DialogFooter className="border-t bg-muted/10 px-6 py-4 gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsCreateOpen(false)}>
                 Cancel
               </Button>
               <Button
-                onClick={handleCreateNotification}
+                size="sm"
+                className="bg-primary hover:bg-primary/90 text-white hover:text-white transition-colors"
+                onClick={handleOpenConfirm}
                 disabled={createNotificationMutation.isPending}
               >
-                {createNotificationMutation.isPending ? (
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                ) : (
-                  <Send className="mr-2 size-4" />
-                )}
-                Send Notification
+                Continue to Review
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Metric Card */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Card className="border-primary/10 transition-colors hover:border-primary/30">
+        <Card className="rounded-xl border border-border/80 shadow-2xs">
           <CardHeader className="pb-2">
-            <CardDescription>Total Notifications</CardDescription>
-            <CardTitle className="text-2xl">{totalMessages}</CardTitle>
+            <CardDescription className="text-xs">Total Broadcasts</CardDescription>
+            <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
+              {totalMessages.toLocaleString()}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-xs text-muted-foreground inline-flex items-center gap-2">
+          <CardContent className="pt-0 text-xs text-muted-foreground inline-flex items-center gap-1.5">
             <Bell className="size-3.5 text-primary" />
-            Stored notifications
+            Total notifications stored and broadcast
           </CardContent>
         </Card>
       </div>
 
-      {notificationsQuery.isLoading && !notificationsQuery.data ? (
-        <NotificationsTableSkeleton />
-      ) : (
-        <Card className="border-primary/10">
-          <CardHeader className="pb-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <CardTitle>Sent Notifications</CardTitle>
-                <CardDescription>
-                  Notification history with title, message, and created time.
-                </CardDescription>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Total records: {pagination?.total ?? notifications.length}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {notificationsQuery.error ? (
-              <div className="rounded-lg border border-destructive/20 p-8 text-center text-sm text-destructive">
-                {notificationsQuery.error instanceof Error
-                  ? notificationsQuery.error.message
-                  : "Unable to load notifications."}
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                No notifications available.
-              </div>
-            ) : (
-              <div className="rounded-md overflow-hidden bg-white">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-gray-50 rounded-2xl!">
-                      <TableRow className="h-16 border-none rounded-2xl!">
-                        <TableHead className="min-w-[220px]">Title</TableHead>
-                        <TableHead className="min-w-[420px]">Message</TableHead>
-                        <TableHead className="min-w-[170px] text-right">Created At</TableHead>
-                        <TableHead className="w-[100px] text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {notifications.map((item) => (
-                        <TableRow key={item.id} className="hover:bg-gray-50 transition-colors">
-                          <TableCell className="font-medium">
-                            <span className="block max-w-[260px] truncate" title={item.title || "-"}>
-                              {truncateText(item.title || "-", 45)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            <span className="block max-w-[520px] truncate" title={item.message || "-"}>
-                              {truncateText(item.message || "-", 95)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right text-sm">{formatDateTime(item.createdAt)}</TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                              onClick={() => handleViewNotification(item)}
-                            >
-                              <Eye className="mr-1 size-4" />
-                              View
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground">
-                Page {pagination?.page ?? page} of {pagination?.totalPages ?? 1}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Rows:</span>
-                <Select
-                  value={String(limit)}
-                  onValueChange={(value) => {
-                    setLimit(Number(value));
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="First page"
-                  onClick={() => setPage(1)}
-                  disabled={!canGoPrev || notificationsQuery.isFetching}
-                >
-                  <ChevronsLeft className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="Previous page"
-                  onClick={() => setPage((previousPage) => Math.max(1, previousPage - 1))}
-                  disabled={!canGoPrev || notificationsQuery.isFetching}
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="Next page"
-                  onClick={() =>
-                    setPage((previousPage) =>
-                      Math.min(pagination?.totalPages ?? previousPage + 1, previousPage + 1),
-                    )
+      {/* Unified Table Card */}
+      <div className="rounded-xl border border-border/80 bg-card text-card-foreground shadow-2xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[200px]">Title</TableHead>
+                <TableHead className="min-w-[380px]">Message</TableHead>
+                <TableHead className="min-w-[160px] text-right">Created At</TableHead>
+                <TableHead className="w-[100px] text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {notificationsQuery.isLoading ? (
+                <TableSkeleton columns={4} rows={limit} showAvatar={false} />
+              ) : notificationsQuery.error ? (
+                <TableErrorState
+                  colSpan={4}
+                  error={
+                    notificationsQuery.error instanceof Error
+                      ? notificationsQuery.error.message
+                      : "Failed to load notifications"
                   }
-                  disabled={!canGoNext || notificationsQuery.isFetching}
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="Last page"
-                  onClick={() => setPage(pagination?.totalPages ?? 1)}
-                  disabled={!canGoNext || notificationsQuery.isFetching}
-                >
-                  <ChevronsRight className="size-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  onRetry={() => notificationsQuery.refetch()}
+                />
+              ) : notifications.length > 0 ? (
+                notifications.map((item) => (
+                  <TableRow key={item.id} className="transition-colors">
+                    <TableCell className="font-semibold text-foreground">
+                      <span className="block max-w-[260px] truncate" title={item.title || "-"}>
+                        {truncateText(item.title || "-", 45)}
+                      </span>
+                    </TableCell>
 
+                    <TableCell className="text-muted-foreground text-sm">
+                      <span className="block max-w-[500px] truncate" title={item.message || "-"}>
+                        {truncateText(item.message || "-", 95)}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className="text-right text-muted-foreground text-xs font-medium">
+                      {formatDateTime(item.createdAt)}
+                    </TableCell>
+
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={() => handleViewNotification(item)}
+                      >
+                        <Eye className="mr-1 size-3.5" />
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableEmptyState
+                  colSpan={4}
+                  icon={Bell}
+                  title="No notifications sent"
+                  description="You have not created or broadcast any notifications yet. Click 'Create Notification' to send one."
+                />
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Unified Pagination */}
+      <TablePagination
+        page={pagination?.page ?? page}
+        totalPages={pagination?.totalPages ?? 1}
+        limit={limit}
+        total={pagination?.total ?? notifications.length}
+        entityLabel="notifications"
+        isFetching={notificationsQuery.isFetching}
+        onPageChange={(nextPage) => setPage(nextPage)}
+        onPageSizeChange={(nextLimit) => {
+          setLimit(nextLimit);
+          setPage(1);
+        }}
+      />
+
+      {/* View Notification Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg p-6 rounded-2xl border bg-card">
           <DialogHeader>
-            <DialogTitle>Notification Details</DialogTitle>
-            <DialogDescription>
-              Full notification title and message.
+            <DialogTitle className="text-lg font-semibold text-foreground">Notification Details</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Review complete notification content and broadcast timestamp.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2">
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Title</p>
-              <p className="text-sm font-medium break-words">{selectedNotification?.title || "-"}</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Title</p>
+              <p className="text-base font-semibold text-foreground break-words">{selectedNotification?.title || "-"}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Message</p>
-              <p className="text-sm text-foreground break-words whitespace-pre-wrap">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Message</p>
+              <div className="rounded-xl border bg-muted/30 p-3.5 text-sm text-foreground break-words whitespace-pre-wrap leading-relaxed">
                 {selectedNotification?.message || "-"}
-              </p>
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Created: {formatDateTime(selectedNotification?.createdAt || "")}
+            <div className="text-xs text-muted-foreground pt-1">
+              Broadcasted on: <span className="font-medium text-foreground">{formatDateTime(selectedNotification?.createdAt || "")}</span>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Send Notification Confirmation Popup */}
+      <ConfirmDialog
+        open={isConfirmSendOpen}
+        onOpenChange={setIsConfirmSendOpen}
+        title="Send Broadcast Notification"
+        description={
+          <div>
+            <p className="mb-2">
+              Are you sure you want to broadcast <span className="font-semibold text-foreground">"{title}"</span> to all platform users?
+            </p>
+            <p className="text-xs text-muted-foreground">
+              This message will be dispatched immediately to all registered accounts and cannot be revoked.
+            </p>
+          </div>
+        }
+        confirmText="Confirm & Send"
+        variant="primary"
+        icon={Send}
+        isLoading={createNotificationMutation.isPending}
+        onConfirm={handleConfirmSend}
+      />
     </div>
   );
 }
