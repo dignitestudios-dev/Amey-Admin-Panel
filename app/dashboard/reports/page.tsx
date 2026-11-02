@@ -33,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -57,19 +56,13 @@ const formatCurrency = (value: number) =>
   }).format(value);
 
 const formatDateTime = (value: string) => {
-  if (!value) {
-    return "-";
-  }
-
+  if (!value) return "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1971) {
-    return "-";
-  }
-
+  if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1971) return "-";
   return date.toLocaleString("en-US", {
-    year: "numeric",
     month: "short",
     day: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -83,18 +76,6 @@ const getInitials = (value: string) => {
   return (parts[0]?.slice(0, 2) || "NA").toUpperCase();
 };
 
-const RevenueTableSkeleton = () => (
-  <Card className="border-primary/10">
-    <CardHeader className="pb-3">
-      <Skeleton className="h-5 w-44" />
-      <Skeleton className="h-4 w-60" />
-    </CardHeader>
-    <CardContent>
-      <Skeleton className="h-[360px] w-full" />
-    </CardContent>
-  </Card>
-);
-
 const PersonInfo = ({
   fullName,
   email,
@@ -103,18 +84,19 @@ const PersonInfo = ({
 }: {
   fullName: string;
   email: string;
-  phoneNumber: string;
-  profileImageUrl: string;
+  phoneNumber?: string;
+  profileImageUrl?: string;
 }) => (
-  <div className="flex items-center gap-3">
-    <Avatar className="size-8 border border-border/60">
-      {profileImageUrl ? <AvatarImage src={profileImageUrl} alt={fullName} /> : null}
-      <AvatarFallback className="text-[10px]">{getInitials(fullName)}</AvatarFallback>
+  <div className="flex items-center gap-2.5">
+    <Avatar className="size-7 rounded-full border border-primary/20 bg-primary/10">
+      <AvatarImage src={profileImageUrl} alt={fullName} />
+      <AvatarFallback className="text-[12px] font-semibold text-primary">
+        {getInitials(fullName || "NA")}
+      </AvatarFallback>
     </Avatar>
-    <div className="min-w-0">
-      <p className="truncate text-sm font-medium">{fullName}</p>
-      <p className="truncate text-xs text-muted-foreground">{email}</p>
-      <p className="truncate text-xs text-muted-foreground">{phoneNumber}</p>
+    <div className="min-w-0 leading-tight">
+      <p className="truncate text-[15px] font-medium text-foreground">{fullName || "Unknown"}</p>
+      <p className="truncate text-[13px] text-muted-foreground">{email || phoneNumber || "-"}</p>
     </div>
   </div>
 );
@@ -126,7 +108,6 @@ export default function ReportsPage() {
   const revenueQuery = useQuery({
     queryKey: ["reports", "revenue", page, limit],
     queryFn: () => getRevenueReport({ page, limit }),
-    placeholderData: (previousData) => previousData,
   });
 
   const analyticsQuery = useQuery({
@@ -151,7 +132,7 @@ export default function ReportsPage() {
         stripeFee: accumulator.stripeFee + row.stripeFee,
         driverAmount: accumulator.driverAmount + row.driverAmount,
       }),
-      { actualFare: 0, platformCommission: 0, stripeFee: 0, driverAmount: 0 },
+      { actualFare: 0, platformCommission: 0, stripeFee: 0, driverAmount: 0 }
     );
   }, [revenueRows]);
 
@@ -159,374 +140,366 @@ export default function ReportsPage() {
   const canGoNext = page < (pagination?.totalPages ?? 1);
 
   return (
-    <div className="flex flex-col gap-4 @container/main px-4 lg:px-6 mt-2 pb-4">
-      <div>
-        <h1 className="text-3xl font-bold">Reports & Analytics</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Revenue operations and platform health insights in one place.
-        </p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-primary/10 transition-colors hover:border-primary/30">
-          <CardHeader className="pb-2">
-            <CardDescription>Total Fare (current page)</CardDescription>
-            <CardTitle className="text-2xl">{formatCurrency(revenueTotals.actualFare)}</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-xs text-muted-foreground inline-flex items-center gap-2">
-            <DollarSign className="size-3.5 text-primary" />
-            Sum of ride fares
-          </CardContent>
-        </Card>
-
-        <Card className="border-primary/10 transition-colors hover:border-primary/30">
-          <CardHeader className="pb-2">
-            <CardDescription>Platform Commission</CardDescription>
-            <CardTitle className="text-2xl">{formatCurrency(revenueTotals.platformCommission)}</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-xs text-muted-foreground inline-flex items-center gap-2">
-            <TrendingUp className="size-3.5 text-primary" />
-            Revenue retained by platform
-          </CardContent>
-        </Card>
-
-        <Card className="border-primary/10 transition-colors hover:border-primary/30">
-          <CardHeader className="pb-2">
-            <CardDescription>Total Drivers</CardDescription>
-            <CardTitle className="text-2xl">{totalDrivers}</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-xs text-muted-foreground inline-flex items-center gap-2">
-            <Car className="size-3.5 text-primary" />
-            Armed: {armedDrivers} · Unarmed: {unarmedDrivers}
-          </CardContent>
-        </Card>
-
-        <Card className="border-primary/10 transition-colors hover:border-primary/30">
-          <CardHeader className="pb-2">
-            <CardDescription>Passenger Activity</CardDescription>
-            <CardTitle className="text-2xl">{passengerAnalytics?.totalUsers ?? 0}</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-xs text-muted-foreground inline-flex items-center gap-2">
-            <Users className="size-3.5 text-primary" />
-            Active: {passengerAnalytics?.activeUsers ?? 0} · Dormant: {passengerAnalytics?.dormantUsers ?? 0}
-          </CardContent>
-        </Card>
-      </div>
-
-      {analyticsQuery.isLoading ? (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Card className="border-primary/10">
-            <CardHeader>
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-56" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-40 w-full" />
-            </CardContent>
-          </Card>
-          <Card className="border-primary/10">
-            <CardHeader>
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-56" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-40 w-full" />
-            </CardContent>
-          </Card>
-          <Card className="border-primary/10">
-            <CardHeader>
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-56" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-40 w-full" />
-            </CardContent>
-          </Card>
-        </div>
-      ) : analyticsQuery.error ? (
-        <Card className="border-destructive/20">
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
-            <p className="text-sm text-destructive">
-              {analyticsQuery.error instanceof Error
-                ? analyticsQuery.error.message
-                : "Unable to load report analytics."}
+    <div className="flex flex-col min-w-0">
+      {/* Signature EpicRides Page Header */}
+      <header className="border-b border-border/60 bg-card/60 px-5 sm:px-6 pt-5 pb-5 backdrop-blur-md">
+        <nav className="mb-2 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <span>Financials</span>
+          <ChevronRight className="size-3 opacity-50" />
+          <span className="text-foreground font-medium">Finance & Payouts</span>
+        </nav>
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+          <div className="min-w-0">
+            <p className="eyebrow mb-1">Platform economics</p>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+              Finance & Payouts
+            </h1>
+            <p className="text-[15px] leading-relaxed text-muted-foreground mt-0.5">
+              Gross fare ledger, platform commissions, driver payouts, and state revenue velocity.
             </p>
-            <Button onClick={() => analyticsQuery.refetch()} disabled={analyticsQuery.isFetching}>
-              {analyticsQuery.isFetching && <Loader2 className="mr-2 size-4 animate-spin" />}
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Card className="border-primary/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base inline-flex items-center gap-2">
-                <TrendingUp className="size-4 text-primary" /> Top States by Rides
-              </CardTitle>
-              <CardDescription>Highest ride volume states.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {(analytics?.states.topStates ?? []).map((item, index) => (
-                <div key={`${item.id}-top`} className="flex items-center justify-between rounded-lg border bg-card p-3">
-                  <div className="inline-flex items-center gap-2 text-sm font-medium">
-                    <Badge className="rounded-full border bg-primary/10 text-primary border-primary/20">#{index + 1}</Badge>
-                    {item.id}
-                  </div>
-                  <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                    <Activity className="size-4" />
-                    <span className="font-semibold text-foreground">{item.totalRides}</span>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          </div>
 
-          <Card className="border-primary/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base inline-flex items-center gap-2">
-                <TrendingDown className="size-4 text-primary" /> Least States by Rides
-              </CardTitle>
-              <CardDescription>Lowest ride volume states.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {(analytics?.states.leastStates ?? []).map((item, index) => (
-                <div key={`${item.id}-least`} className="flex items-center justify-between rounded-lg border bg-card p-3">
-                  <div className="inline-flex items-center gap-2 text-sm font-medium">
-                    <Badge className="rounded-full border bg-muted text-muted-foreground border-border">#{index + 1}</Badge>
-                    {item.id}
-                  </div>
-                  <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                    <Activity className="size-4" />
-                    <span className="font-semibold text-foreground">{item.totalRides}</span>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          {/* Quick Metrics Badges in Header */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-baseline gap-1.5 rounded-md border border-border/70 bg-background/60 px-2.5 py-1">
+              <span className="text-[12px] uppercase tracking-[0.05em] text-muted-foreground">Page Fare</span>
+              <span className="text-xs font-semibold tnum text-primary">
+                {formatCurrency(revenueTotals.actualFare)}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5 rounded-md border border-border/70 bg-background/60 px-2.5 py-1">
+              <span className="text-[12px] uppercase tracking-[0.05em] text-muted-foreground">Commission</span>
+              <span className="text-xs font-semibold tnum text-foreground">
+                {formatCurrency(revenueTotals.platformCommission)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
 
-          <Card className="border-primary/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base inline-flex items-center gap-2">
-                <Users className="size-4 text-primary" /> Driver & Passenger Analytics
-              </CardTitle>
-              <CardDescription>Complete user segmentation from report analytics.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border bg-card p-3 space-y-2">
-                <div className="text-xs text-muted-foreground">Drivers</div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Total Drivers</span>
-                  <span className="font-semibold">{totalDrivers}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Armed Drivers</span>
-                  <span className="font-semibold">{armedDrivers}</span>
-                </div>
-                <Progress value={totalDrivers > 0 ? (armedDrivers / totalDrivers) * 100 : 0} />
-              </div>
+      {/* Main Content */}
+      <div className="flex-1 p-4 md:p-6 lg:p-7 max-w-[1600px] w-full mx-auto space-y-5">
+        {/* Metric Cards Grid */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-lg border border-border/70 bg-card/85 p-3.5 backdrop-blur-md shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                Page Gross GMV
+              </span>
+              <DollarSign className="size-4 text-primary" />
+            </div>
+            <div className="mt-2 text-[26px] font-semibold tracking-tight text-foreground font-mono tnum">
+              {formatCurrency(revenueTotals.actualFare)}
+            </div>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Sum of actual ride fares on this page
+            </p>
+          </div>
 
-              <div className="rounded-lg border bg-card p-3 space-y-2">
-                <div className="text-xs text-muted-foreground">Passengers</div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Total Users</span>
-                  <span className="font-semibold">{passengerAnalytics?.totalUsers ?? 0}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Active Users</span>
-                  <span className="font-semibold">{passengerAnalytics?.activeUsers ?? 0}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Dormant Users</span>
-                  <span className="font-semibold">{passengerAnalytics?.dormantUsers ?? 0}</span>
-                </div>
-                <div className="space-y-1 pt-1">
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="flex h-full w-full">
-                      <div
-                        className="h-full bg-primary"
-                        style={{ width: `${passengerAnalytics?.activeRatio ?? 0}%` }}
-                      />
-                      <div
-                        className="h-full bg-primary/30"
-                        style={{ width: `${passengerAnalytics?.dormantRatio ?? 0}%` }}
-                      />
+          <div className="rounded-lg border border-border/70 bg-card/85 p-3.5 backdrop-blur-md shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                Platform Commission
+              </span>
+              <TrendingUp className="size-4 text-primary" />
+            </div>
+            <div className="mt-2 text-[26px] font-semibold tracking-tight text-primary font-mono tnum">
+              {formatCurrency(revenueTotals.platformCommission)}
+            </div>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Net revenue retained by platform
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-border/70 bg-card/85 p-3.5 backdrop-blur-md shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                Active Fleet
+              </span>
+              <Car className="size-4 text-primary" />
+            </div>
+            <div className="mt-2 text-[26px] font-semibold tracking-tight text-foreground font-mono tnum">
+              {totalDrivers}
+            </div>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Armed: {armedDrivers} · Standard: {unarmedDrivers}
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-border/70 bg-card/85 p-3.5 backdrop-blur-md shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                Rider Base
+              </span>
+              <Users className="size-4 text-primary" />
+            </div>
+            <div className="mt-2 text-[26px] font-semibold tracking-tight text-foreground font-mono tnum">
+              {passengerAnalytics?.totalUsers ?? 0}
+            </div>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Active: {passengerAnalytics?.activeUsers ?? 0} · Inactive: {passengerAnalytics?.dormantUsers ?? 0}
+            </p>
+          </div>
+        </div>
+
+        {/* Analytics Breakdown Deck */}
+        {!analyticsQuery.isLoading && analytics && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="rounded-lg border border-border/70 bg-card/85 backdrop-blur-md shadow-xs">
+              <CardHeader className="p-4 pb-2 border-b border-border/60">
+                <CardTitle className="text-[15px] font-semibold tracking-tight text-foreground inline-flex items-center gap-2">
+                  <TrendingUp className="size-4 text-primary" />
+                  Top Territories by Ride Velocity
+                </CardTitle>
+                <CardDescription className="text-[13px] text-muted-foreground">
+                  Highest trip density states across platform operations.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 space-y-2">
+                {(analytics?.states.topStates ?? []).map((item, index) => (
+                  <div
+                    key={`${item.id}-top`}
+                    className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-3 py-2"
+                  >
+                    <div className="inline-flex items-center gap-2 text-[14px] font-medium text-foreground">
+                      <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[12px] font-bold text-primary">
+                        #{index + 1}
+                      </span>
+                      <span>{item.id}</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 text-[14px] font-mono font-semibold text-foreground tnum">
+                      <Activity className="size-3 text-muted-foreground" />
+                      <span>{item.totalRides.toLocaleString()} rides</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Active: {passengerAnalytics?.activeRatio ?? 0}%</span>
-                    <span>Dormant: {passengerAnalytics?.dormantRatio ?? 0}%</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                ))}
+              </CardContent>
+            </Card>
 
-      {revenueQuery.isLoading && !revenueQuery.data ? (
-        <RevenueTableSkeleton />
-      ) : (
-        <Card className="border-primary/10">
-          <CardHeader className="pb-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <Card className="rounded-lg border border-border/70 bg-card/85 backdrop-blur-md shadow-xs">
+              <CardHeader className="p-4 pb-2 border-b border-border/60">
+                <CardTitle className="text-[15px] font-semibold tracking-tight text-foreground inline-flex items-center gap-2">
+                  <TrendingDown className="size-4 text-muted-foreground" />
+                  Emerging Jurisdictions
+                </CardTitle>
+                <CardDescription className="text-[13px] text-muted-foreground">
+                  States with early-stage growth trajectory.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 space-y-2">
+                {(analytics?.states.leastStates ?? []).map((item, index) => (
+                  <div
+                    key={`${item.id}-least`}
+                    className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-3 py-2"
+                  >
+                    <div className="inline-flex items-center gap-2 text-[14px] font-medium text-foreground">
+                      <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[12px] font-bold text-muted-foreground">
+                        #{index + 1}
+                      </span>
+                      <span>{item.id}</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 text-[14px] font-mono font-semibold text-muted-foreground tnum">
+                      <Activity className="size-3" />
+                      <span>{item.totalRides.toLocaleString()} rides</span>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Revenue Ledger Card */}
+        <Card className="rounded-lg border border-border/70 bg-card/85 backdrop-blur-md shadow-xs overflow-hidden">
+          <CardHeader className="p-4 border-b border-border/60 bg-muted/20">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <CardTitle>Revenue Report</CardTitle>
-                <CardDescription>
-                  Complete trip-wise revenue records in a cleaner table layout.
+                <CardTitle className="text-[15px] font-semibold tracking-tight text-foreground">
+                  Revenue Ledger & Payout Log
+                </CardTitle>
+                <CardDescription className="text-[13px] text-muted-foreground">
+                  Individual ride fare settlement, fee allocations, and payout amounts.
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Shield className="size-4 text-primary" />
-                <span className="text-xs text-muted-foreground">
-                  Total records: {pagination?.total ?? revenueRows.length}
+                <Shield className="size-3.5 text-primary" />
+                <span className="text-[13px] font-mono text-muted-foreground tnum">
+                  Total transactions: {pagination?.total ?? revenueRows.length}
                 </span>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {revenueQuery.isLoading ? (
-              <div className="rounded-lg border p-8 text-center text-sm text-muted-foreground">
-                Loading revenue report...
-              </div>
-            ) : revenueQuery.error ? (
-              <div className="rounded-lg border border-destructive/20 p-8 text-center text-sm text-destructive">
-                {revenueQuery.error instanceof Error
-                  ? revenueQuery.error.message
-                  : "Unable to load revenue report."}
-              </div>
-            ) : revenueRows.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                No revenue records found.
-              </div>
-            ) : (
-              <div className="rounded-md overflow-hidden bg-white">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-gray-50 rounded-2xl!">
-                      <TableRow className="h-16 border-none rounded-2xl!">
-                        <TableHead className="min-w-[190px]">Ride</TableHead>
-                        <TableHead className="min-w-[150px]">Date</TableHead>
-                        <TableHead className="min-w-[130px] text-right">Fare</TableHead>
-                        <TableHead className="min-w-[140px] text-right">Commission</TableHead>
-                        <TableHead className="min-w-[120px] text-right">Stripe Fee</TableHead>
-                        <TableHead className="min-w-[140px] text-right">Driver Amount</TableHead>
-                        <TableHead className="min-w-[280px]">Driver</TableHead>
-                        <TableHead className="min-w-[280px]">Passenger</TableHead>
+
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table className="w-full text-[15px]">
+                <TableHeader className="bg-muted/30 border-b border-border/70">
+                  <TableRow className="border-none hover:bg-transparent">
+                    <TableHead className="h-9 px-4 text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                      Ride ID
+                    </TableHead>
+                    <TableHead className="h-9 px-4 text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                      Date
+                    </TableHead>
+                    <TableHead className="h-9 px-4 text-right text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                      Fare
+                    </TableHead>
+                    <TableHead className="h-9 px-4 text-right text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                      Commission
+                    </TableHead>
+                    <TableHead className="h-9 px-4 text-right text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                      Stripe Fee
+                    </TableHead>
+                    <TableHead className="h-9 px-4 text-right text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                      Driver Payout
+                    </TableHead>
+                    <TableHead className="h-9 px-4 text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                      Driver
+                    </TableHead>
+                    <TableHead className="h-9 px-4 text-left text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                      Passenger
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {revenueQuery.isLoading ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-12 text-muted-foreground text-xs"
+                      >
+                        Loading financial ledger...
+                      </TableCell>
+                    </TableRow>
+                  ) : revenueQuery.error ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-12 text-destructive text-xs"
+                      >
+                        Failed to load ledger records
+                      </TableCell>
+                    </TableRow>
+                  ) : revenueRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-12 text-muted-foreground text-xs"
+                      >
+                        No revenue records found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    revenueRows.map((row: RevenueReportItem) => (
+                      <TableRow
+                        key={row.rideId}
+                        className="hover:bg-muted/40 border-b border-border/50 transition-colors"
+                      >
+                        <TableCell className="px-4 py-2.5">
+                          <span className="font-mono text-[13px] text-muted-foreground">
+                            {row.rideId ? row.rideId.slice(0, 10) + "..." : "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-4 py-2.5 font-mono text-[13px] text-muted-foreground tnum">
+                          {formatDateTime(row.rideDate)}
+                        </TableCell>
+                        <TableCell className="px-4 py-2.5 text-right font-mono font-medium text-foreground tnum">
+                          {formatCurrency(row.actualFare)}
+                        </TableCell>
+                        <TableCell className="px-4 py-2.5 text-right font-mono font-medium text-primary tnum">
+                          {formatCurrency(row.platformCommission)}
+                        </TableCell>
+                        <TableCell className="px-4 py-2.5 text-right font-mono text-muted-foreground tnum">
+                          {formatCurrency(row.stripeFee)}
+                        </TableCell>
+                        <TableCell className="px-4 py-2.5 text-right font-mono font-semibold text-foreground tnum">
+                          {formatCurrency(row.driverAmount)}
+                        </TableCell>
+                        <TableCell className="px-4 py-2.5">
+                          <PersonInfo
+                            fullName={row.driver.fullName}
+                            email={row.driver.email}
+                            phoneNumber={row.driver.phoneNumber}
+                            profileImageUrl={row.driver.profileImageUrl}
+                          />
+                        </TableCell>
+                        <TableCell className="px-4 py-2.5">
+                          <PersonInfo
+                            fullName={row.passenger.fullName}
+                            email={row.passenger.email}
+                            phoneNumber={row.passenger.phoneNumber}
+                            profileImageUrl={row.passenger.profileImageUrl}
+                          />
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {revenueRows.map((row: RevenueReportItem) => (
-                        <TableRow key={row.rideId} className="hover:bg-gray-50 transition-colors">
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Badge className="rounded-full border bg-primary/10 text-primary border-primary/20">Ride</Badge>
-                              <span className="text-xs font-medium break-all">{row.rideId || "-"}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{formatDateTime(row.rideDate)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(row.actualFare)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(row.platformCommission)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(row.stripeFee)}</TableCell>
-                          <TableCell className="text-right font-semibold text-primary">{formatCurrency(row.driverAmount)}</TableCell>
-                          <TableCell>
-                            <PersonInfo
-                              fullName={row.driver.fullName}
-                              email={row.driver.email}
-                              phoneNumber={row.driver.phoneNumber}
-                              profileImageUrl={row.driver.profileImageUrl}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <PersonInfo
-                              fullName={row.passenger.fullName}
-                              email={row.passenger.email}
-                              phoneNumber={row.passenger.phoneNumber}
-                              profileImageUrl={row.passenger.profileImageUrl}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground">
-                Page {pagination?.page ?? page} of {pagination?.totalPages ?? 1}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Rows:</span>
-                <Select
-                  value={String(limit)}
-                  onValueChange={(value) => {
-                    setLimit(Number(value));
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="First page"
-                  onClick={() => setPage(1)}
-                  disabled={!canGoPrev || revenueQuery.isFetching}
-                >
-                  <ChevronsLeft className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="Previous page"
-                  onClick={() => setPage((previousPage) => Math.max(1, previousPage - 1))}
-                  disabled={!canGoPrev || revenueQuery.isFetching}
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="Next page"
-                  onClick={() =>
-                    setPage((previousPage) =>
-                      Math.min(pagination?.totalPages ?? previousPage + 1, previousPage + 1),
-                    )
-                  }
-                  disabled={!canGoNext || revenueQuery.isFetching}
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="size-8 p-0"
-                  title="Last page"
-                  onClick={() => setPage(pagination?.totalPages ?? 1)}
-                  disabled={!canGoNext || revenueQuery.isFetching}
-                >
-                  <ChevronsRight className="size-4" />
-                </Button>
-              </div>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
-      )}
+
+        {/* Pagination Footer */}
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between px-1 py-1 text-[14px] text-muted-foreground">
+          <div>
+            Showing <span className="font-semibold text-foreground tnum">{revenueRows.length}</span> of{" "}
+            <span className="font-semibold text-foreground tnum">{pagination?.total ?? revenueRows.length}</span> records
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span>Rows:</span>
+              <Select
+                value={String(limit)}
+                onValueChange={(value) => {
+                  setLimit(Number(value));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-7 w-16 text-[13px] bg-card border-border/70">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="text-[14px] tnum">
+              Page <span className="font-semibold text-foreground">{pagination?.page ?? page}</span> of{" "}
+              <span className="font-semibold text-foreground">{pagination?.totalPages ?? 1}</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={!canGoPrev || revenueQuery.isFetching}
+                className="h-7 px-2 text-[13px] rounded-md border-border/70 cursor-pointer"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setPage((prev) =>
+                    Math.min(pagination?.totalPages ?? prev + 1, prev + 1)
+                  )
+                }
+                disabled={!canGoNext || revenueQuery.isFetching}
+                className="h-7 px-2 text-[13px] rounded-md border-border/70 cursor-pointer"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

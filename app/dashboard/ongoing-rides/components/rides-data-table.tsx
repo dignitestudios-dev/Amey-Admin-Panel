@@ -1,20 +1,18 @@
 "use client";
 
-import {
-  Search,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  FilterBar,
+  InitialAvatar,
+  PageFooter,
+  SearchField,
+  StatusDot,
+  TableCard,
+  TableMessage,
+  tdClass,
+  thClass,
+  type Tone,
+} from "@/components/data-table-ui";
 import {
   Table,
   TableBody,
@@ -30,7 +28,7 @@ interface RideFilters {
   status: "all" | RideStatus;
   rideType: "all";
   isOnGoing: boolean;
-  state: string | "all"; // ✅ ADD THIS
+  state: string | "all";
 }
 
 interface RidesDataTableProps {
@@ -50,17 +48,10 @@ interface RidesDataTableProps {
 }
 
 const formatDateTime = (value: string) => {
-  if (!value) {
-    return "-";
-  }
-
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("en-US", {
-    year: "numeric",
     month: "short",
     day: "2-digit",
     hour: "2-digit",
@@ -69,41 +60,31 @@ const formatDateTime = (value: string) => {
 };
 
 const formatStatus = (value: string) => {
-  if (!value) {
-    return "Unknown";
-  }
-
-  return value
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  if (!value) return "Unknown";
+  return value.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-const getStatusColor = (status: RideStatus) => {
+const statusTone = (status: RideStatus): Tone => {
   switch (status) {
     case "requested":
-      return "text-blue-700 bg-blue-700/10 border-blue-700/10";
+      return "info";
     case "accepted":
-      return "text-indigo-700 bg-indigo-700/10 border-indigo-700/10";
     case "on-the-way":
-      return "text-cyan-700 bg-cyan-700/10 border-cyan-700/10";
     case "arrived":
-      return "text-purple-700 bg-purple-700/10 border-purple-700/10";
+      return "warning";
     case "in-progress":
-      return "text-amber-700 bg-amber-700/10 border-amber-700/10";
     case "completed":
-      return "text-green-700 bg-green-700/10 border-green-700/10";
+      return "success";
     case "cancelled":
-      return "text-red-700 bg-red-700/10 border-red-700/10";
     case "expired":
-      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+      return "danger";
     default:
-      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+      return "neutral";
   }
 };
 
 export function RidesDataTable({
   rides,
-  filters,
   searchQuery,
   page,
   limit,
@@ -119,139 +100,121 @@ export function RidesDataTable({
   const router = useRouter();
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span />
+    <TableCard title="Live dispatch" subtitle="Trips currently in transit, with passenger, route and fare">
+      <FilterBar>
+        <SearchField
+          value={searchQuery}
+          onChange={onSearchChange}
+          placeholder="Search by passenger, driver or city"
+        />
+        <span className="ml-auto text-[13px] text-muted-foreground tnum">{total} shown</span>
+      </FilterBar>
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-72">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search rides..."
-              className="pl-10 h-9 text-sm border border-gray-200 bg-white"
-              value={searchQuery}
-              onChange={(event) => onSearchChange(event.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      <Card className="shadow-none border-none pt-0 rounded-md overflow-hidden bg-white">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-gray-50 rounded-2xl!">
-                <TableRow className="h-16 border-none rounded-2xl!">
-                  <TableHead>Passenger</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Security</TableHead>
-                  <TableHead className="text-right">Fare</TableHead>
-                  <TableHead>Start Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      Loading rides...
-                    </TableCell>
-                  </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-red-600">
-                      {error}
-                    </TableCell>
-                  </TableRow>
-                ) : rides.length > 0 ? (
-                  rides.map((ride) => (
-                    <TableRow
-                      key={ride.id}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => router.push(`/dashboard/rides/${ride.id}`)}
+      <div className="overflow-x-auto">
+        <Table className="w-full min-w-[900px] text-[14px]">
+          <TableHeader>
+            <TableRow className="border-b border-border hover:bg-transparent">
+              <TableHead className={`${thClass} text-left`}>Passenger</TableHead>
+              <TableHead className={`${thClass} text-left`}>Status</TableHead>
+              <TableHead className={`${thClass} text-left`}>Type</TableHead>
+              <TableHead className={`${thClass} text-left`}>City / State</TableHead>
+              <TableHead className={`${thClass} text-left`}>Security</TableHead>
+              <TableHead className={`${thClass} text-right`}>Fare</TableHead>
+              <TableHead className={`${thClass} text-left`}>Time</TableHead>
+              <TableHead className={`${thClass} text-right`}>Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={8} className="p-0">
+                  <TableMessage>Loading active dispatches...</TableMessage>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={8} className="p-0">
+                  <TableMessage tone="error">{error}</TableMessage>
+                </TableCell>
+              </TableRow>
+            ) : rides.length > 0 ? (
+              rides.map((ride) => (
+                <TableRow
+                  key={ride.id}
+                  className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-accent/60"
+                  onClick={() => router.push(`/dashboard/ongoing-rides/${ride.id}`)}
+                >
+                  <TableCell className={tdClass}>
+                    <div className="flex items-center gap-3">
+                      <InitialAvatar name={ride.passengerName} />
+                      <div className="min-w-0 leading-tight">
+                        <p className="font-semibold text-foreground">
+                          {ride.passengerName || "Unknown passenger"}
+                        </p>
+                        <p className="max-w-[200px] truncate text-[12px] text-muted-foreground">
+                          {ride.passengerEmail}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className={tdClass}>
+                    <StatusDot tone={statusTone(ride.rideStatus)}>{formatStatus(ride.rideStatus)}</StatusDot>
+                  </TableCell>
+                  <TableCell className={`${tdClass} text-muted-foreground`}>
+                    {formatStatus(ride.rideCategory)}
+                  </TableCell>
+                  <TableCell className={tdClass}>
+                    <div className="leading-tight">
+                      <p className="text-foreground">{ride.city}</p>
+                      <p className="text-[12px] text-muted-foreground">{ride.state}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className={`${tdClass} text-muted-foreground`}>
+                    {formatStatus(ride.rideSecurity)}
+                  </TableCell>
+                  <TableCell className={`${tdClass} text-right font-semibold tnum`}>
+                    ${ride.actualFare.toFixed(2)}
+                  </TableCell>
+                  <TableCell className={`${tdClass} text-muted-foreground tnum`}>
+                    {formatDateTime(ride.startTime)}
+                  </TableCell>
+                  <TableCell className={`${tdClass} text-right`}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 cursor-pointer rounded-lg px-3 text-[13px] text-primary hover:bg-primary/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/dashboard/ongoing-rides/${ride.id}`);
+                      }}
                     >
-                      <TableCell>
-                        <div>
-                          <p>{ride.passengerName || "Unknown passenger"}</p>
-                          <p className="text-xs text-muted-foreground">{ride.passengerEmail}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`text-xs rounded-full px-2 py-0.5 ${getStatusColor(ride.rideStatus)}`}
-                        >
-                          {formatStatus(ride.rideStatus)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatStatus(ride.rideCategory)}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p>{ride.city}</p>
-                          <p className="text-xs text-muted-foreground">{ride.state}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatStatus(ride.rideSecurity)}</TableCell>
-                      <TableCell className="text-right">${ride.actualFare.toFixed(2)}</TableCell>
-                      <TableCell>{formatDateTime(ride.startTime)}</TableCell>
-                     
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      <p className="text-muted-foreground">No rides found matching filters</p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
-        <div className="text-sm text-muted-foreground">Total: {total} rides</div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="page-size">Rows</Label>
-            <Select value={String(limit)} onValueChange={(value) => onPageSizeChange(Number(value))}>
-              <SelectTrigger id="page-size" className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="30">30</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="text-sm">Page {page} of {totalPages || 1}</div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1 || isFetching}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= (totalPages || 1) || isFetching}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+                      Track
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={8} className="p-0">
+                  <TableMessage>No active rides in transit currently.</TableMessage>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
-    </div>
+
+      <PageFooter
+        shown={rides.length}
+        total={total}
+        page={page}
+        totalPages={totalPages}
+        limit={limit}
+        noun="active rides"
+        disabled={isFetching}
+        onPage={onPageChange}
+        onPageSize={onPageSizeChange}
+      />
+    </TableCard>
   );
 }

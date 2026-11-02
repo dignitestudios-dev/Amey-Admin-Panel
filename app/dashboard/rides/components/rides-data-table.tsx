@@ -1,33 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import {
-  Eye,
-  Filter,
-  RotateCcw,
-  Search,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Layers, MapPin, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  FilterBar,
+  FilterSelect,
+  InitialAvatar,
+  PageFooter,
+  SearchField,
+  StatusDot,
+  StatusTabs,
+  TableCard,
+  TableMessage,
+  tdClass,
+  thClass,
+  type Tone,
+} from "@/components/data-table-ui";
 import {
   Table,
   TableBody,
@@ -36,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Ride, RideFilters, RideStatus, RideType } from "@/lib/api/rides.api";
+import type { Ride, RideFilters, RideStatus } from "@/lib/api/rides.api";
 import { useRouter } from "next/navigation";
 import { US_STATES } from "@/lib/constants/states";
 
@@ -58,17 +46,10 @@ interface RidesDataTableProps {
 }
 
 const formatDateTime = (value: string) => {
-  if (!value) {
-    return "-";
-  }
-
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("en-US", {
-    year: "numeric",
     month: "short",
     day: "2-digit",
     hour: "2-digit",
@@ -77,36 +58,43 @@ const formatDateTime = (value: string) => {
 };
 
 const formatStatus = (value: string) => {
-  if (!value) {
-    return "Unknown";
-  }
-
-  return value
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  if (!value) return "Unknown";
+  return value.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-const getStatusColor = (status: RideStatus) => {
+const statusTone = (status: RideStatus): Tone => {
   switch (status) {
     case "requested":
-      return "text-blue-700 bg-blue-700/10 border-blue-700/10";
+      return "info";
     case "accepted":
-      return "text-indigo-700 bg-indigo-700/10 border-indigo-700/10";
     case "on-the-way":
-      return "text-cyan-700 bg-cyan-700/10 border-cyan-700/10";
     case "arrived":
-      return "text-purple-700 bg-purple-700/10 border-purple-700/10";
+      return "warning";
     case "in-progress":
-      return "text-amber-700 bg-amber-700/10 border-amber-700/10";
     case "completed":
-      return "text-green-700 bg-green-700/10 border-green-700/10";
+      return "success";
     case "cancelled":
-      return "text-red-700 bg-red-700/10 border-red-700/10";
     case "expired":
-      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+      return "danger";
     default:
-      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+      return "neutral";
   }
+};
+
+const STATUS_TABS = [
+  { id: "all", label: "All trips" },
+  { id: "requested", label: "Requested" },
+  { id: "in-progress", label: "In progress" },
+  { id: "completed", label: "Completed" },
+  { id: "cancelled", label: "Cancelled" },
+  { id: "expired", label: "Expired" },
+];
+
+const DEFAULT_FILTERS: RideFilters = {
+  status: "all",
+  rideType: "all",
+  isOnGoing: false,
+  state: "all",
 };
 
 export function RidesDataTable({
@@ -125,323 +113,175 @@ export function RidesDataTable({
   onPageChange,
   onPageSizeChange,
 }: RidesDataTableProps) {
-  const [draftFilters, setDraftFilters] = useState<RideFilters>(filters);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const router=useRouter();
-const activeFilterCount = [
-  filters.status,
-  filters.rideType,
-  filters.state, // ✅
-].filter((value) => value !== "all").length;
+  const router = useRouter();
 
   const hasActiveFilters =
     filters.status !== "all" ||
     filters.rideType !== "all" ||
-    searchQuery !== "";
+    (filters.state && filters.state !== "all") ||
+    Boolean(searchQuery.trim());
+
+  const stateOptions = [
+    { value: "all", label: "All states" },
+    ...US_STATES.map((st) => ({ value: st, label: st })),
+  ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span />
+    <div className="space-y-5">
+      <StatusTabs
+        tabs={STATUS_TABS}
+        value={filters.status}
+        onChange={(id) => onFilterChange({ ...filters, status: id as RideFilters["status"] })}
+      />
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-72">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search rides..."
-              className="pl-10 h-9 text-sm border border-gray-200 bg-white"
-              value={searchQuery}
-              onChange={(event) => onSearchChange(event.target.value)}
-            />
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 w-9 p-0 border border-gray-200 relative"
-            onClick={() => {
-              setDraftFilters(filters);
-              setIsFilterOpen(true);
-            }}
-            title="Open filters"
-          >
-            <Filter className="w-4 h-4 text-gray-700" />
-            {activeFilterCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 h-4 min-w-4 rounded-full bg-black px-1 text-[10px] leading-4 text-white">
-                {activeFilterCount}
-              </span>
-            )}
-          </Button>
-
+      <TableCard title="Trip ledger" subtitle="Every trip with passenger, route, security level and fare">
+        <FilterBar>
+          <SearchField
+            value={searchQuery}
+            onChange={onSearchChange}
+            placeholder="Search passenger, driver or ride ID"
+          />
+          <FilterSelect
+            icon={Layers}
+            value={filters.rideType}
+            onChange={(v) => onFilterChange({ ...filters, rideType: v as RideFilters["rideType"] })}
+            options={[
+              { value: "all", label: "All types" },
+              { value: "quick", label: "Quick" },
+              { value: "hourly", label: "Hourly" },
+              { value: "child", label: "Child" },
+            ]}
+          />
+          <FilterSelect
+            icon={MapPin}
+            value={filters.state || "all"}
+            onChange={(v) => onFilterChange({ ...filters, state: v })}
+            options={stateOptions}
+            className="w-[170px]"
+          />
           {hasActiveFilters && (
             <Button
               variant="ghost"
               size="sm"
-              className="text-gray-600 hover:text-black"
+              className="h-10 cursor-pointer rounded-lg px-3 text-[14px] text-muted-foreground hover:text-foreground"
               onClick={() => {
-onFilterChange({
-  status: "all",
-  rideType: "all",
-  isOnGoing: true,
-  state: "all", // ✅
-});                onSearchChange("");
+                onFilterChange(DEFAULT_FILTERS);
+                onSearchChange("");
               }}
-              title="Clear filters"
             >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <Dialog
-        open={isFilterOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDraftFilters(filters);
-          }
-          setIsFilterOpen(open);
-        }}
-      >
-        <DialogContent className="sm:max-w-140 p-0 overflow-hidden">
-          <DialogHeader className="border-b bg-muted/30 px-6 py-5">
-            <DialogTitle className="text-black">Filter Rides</DialogTitle>
-            <DialogDescription>
-              Select your criteria and save to apply all filters at once.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="px-6 py-5 space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Ride Status</Label>
-                <Select
-                  value={draftFilters.status}
-                  onValueChange={(value) =>
-                    setDraftFilters({ ...draftFilters, status: value as RideFilters["status"] })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="requested">Requested</SelectItem>
-                    <SelectItem value="accepted">Accepted</SelectItem>
-                    <SelectItem value="on-the-way">On The Way</SelectItem>
-                    <SelectItem value="arrived">Arrived</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Ride Type</Label>
-                <Select
-                  value={draftFilters.rideType}
-                  onValueChange={(value) =>
-                    setDraftFilters({ ...draftFilters, rideType: value as RideFilters["rideType"] })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="hourly">Hourly</SelectItem>
-                    <SelectItem value="quick">Quick</SelectItem>
-                    <SelectItem value="child">Child</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-<div className="space-y-2">
-  <Label className="text-sm text-black block">State</Label>
-
-  <Select
-    value={draftFilters.state || "all"} // ✅ controlled
-    onValueChange={(value) =>
-      setDraftFilters({
-        ...draftFilters,
-        state: value, // ✅ updates draft only
-      })
-    }
-  >
-    <SelectTrigger className="w-full">
-      <SelectValue placeholder="Select state" />
-    </SelectTrigger>
-
-    <SelectContent>
-      <SelectItem value="all">All States</SelectItem>
-
-      {US_STATES.map((state) => (
-        <SelectItem key={state} value={state}>
-          {state}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
-            <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              {activeFilterCount > 0
-                ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
-                : "No filters are currently applied."}
-            </div>
-
-            
-          </div>
-
-
-
-          <DialogFooter className="border-t px-6 py-4 gap-2">
-            <Button
-              variant="outline"
-              onClick={() =>
-                setDraftFilters({
-                  status: "all",
-                  rideType: "all",
-                  isOnGoing: true,
-                    state: "all", // ✅ add this
-
-                })
-              }
-            >
+              <RotateCcw className="size-4" />
               Reset
             </Button>
-            <Button variant="outline" onClick={() => setIsFilterOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                onFilterChange(draftFilters);
-                setIsFilterOpen(false);
-              }}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          )}
+          <span className="ml-auto text-[13px] text-muted-foreground tnum">{total} shown</span>
+        </FilterBar>
 
-      <Card className="shadow-none border-none pt-0 rounded-md overflow-hidden bg-white">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-gray-50 rounded-2xl!">
-                <TableRow className="h-16 border-none rounded-2xl!">
-                  <TableHead>Passenger</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>City</TableHead>
-                  
-                  <TableHead>Security</TableHead>
-                  <TableHead className="text-right">Fare</TableHead>
-                  <TableHead>Start Time</TableHead>
+        <div className="overflow-x-auto">
+          <Table className="w-full min-w-[900px] text-[14px]">
+            <TableHeader>
+              <TableRow className="border-b border-border hover:bg-transparent">
+                <TableHead className={`${thClass} text-left`}>Passenger</TableHead>
+                <TableHead className={`${thClass} text-left`}>Status</TableHead>
+                <TableHead className={`${thClass} text-left`}>Type</TableHead>
+                <TableHead className={`${thClass} text-left`}>City / State</TableHead>
+                <TableHead className={`${thClass} text-left`}>Security</TableHead>
+                <TableHead className={`${thClass} text-right`}>Fare</TableHead>
+                <TableHead className={`${thClass} text-left`}>Time</TableHead>
+                <TableHead className={`${thClass} text-right`}>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={8} className="p-0">
+                    <TableMessage>Loading trip ledger...</TableMessage>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      Loading rides...
-                    </TableCell>
-                  </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-red-600">
-                      {error}
-                    </TableCell>
-                  </TableRow>
-                ) : rides.length > 0 ? (
-                  rides.map((ride) => (
-                    <TableRow
-                      key={ride.id}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => router.push(`/dashboard/rides/${ride.id}`)}
-                    >
-                      <TableCell>
-                        <div>
-                          <p>{ride.passengerName || "Unknown passenger"}</p>
-                          <p className="text-xs text-muted-foreground">{ride.passengerEmail}</p>
+              ) : error ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={8} className="p-0">
+                    <TableMessage tone="error">{error}</TableMessage>
+                  </TableCell>
+                </TableRow>
+              ) : rides.length > 0 ? (
+                rides.map((ride) => (
+                  <TableRow
+                    key={ride.id}
+                    className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-accent/60"
+                    onClick={() => router.push(`/dashboard/rides/${ride.id}`)}
+                  >
+                    <TableCell className={tdClass}>
+                      <div className="flex items-center gap-3">
+                        <InitialAvatar name={ride.passengerName} />
+                        <div className="min-w-0 leading-tight">
+                          <p className="font-semibold text-foreground">
+                            {ride.passengerName || "Unknown passenger"}
+                          </p>
+                          <p className="max-w-[200px] truncate text-[12px] text-muted-foreground">
+                            {ride.passengerEmail}
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`text-xs rounded-full px-2 py-0.5 ${getStatusColor(ride.rideStatus)}`}
-                        >
-                          {formatStatus(ride.rideStatus)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatStatus(ride.rideCategory)}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p>{ride.city}</p>
-                          <p className="text-xs text-muted-foreground">{ride.state}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatStatus(ride.rideSecurity)}</TableCell>
-                      <TableCell className="text-right">${ride.actualFare.toFixed(2)}</TableCell>
-                      <TableCell>{formatDateTime(ride.startTime)}</TableCell>
-                     
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      <p className="text-muted-foreground">No rides found matching filters</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className={tdClass}>
+                      <StatusDot tone={statusTone(ride.rideStatus)}>{formatStatus(ride.rideStatus)}</StatusDot>
+                    </TableCell>
+                    <TableCell className={`${tdClass} text-muted-foreground`}>
+                      {formatStatus(ride.rideCategory)}
+                    </TableCell>
+                    <TableCell className={tdClass}>
+                      <div className="leading-tight">
+                        <p className="text-foreground">{ride.city}</p>
+                        <p className="text-[12px] text-muted-foreground">{ride.state}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className={`${tdClass} text-muted-foreground`}>
+                      {formatStatus(ride.rideSecurity)}
+                    </TableCell>
+                    <TableCell className={`${tdClass} text-right font-semibold tnum`}>
+                      ${ride.actualFare.toFixed(2)}
+                    </TableCell>
+                    <TableCell className={`${tdClass} text-muted-foreground tnum`}>
+                      {formatDateTime(ride.startTime)}
+                    </TableCell>
+                    <TableCell className={`${tdClass} text-right`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 cursor-pointer rounded-lg px-3 text-[13px] text-primary hover:bg-primary/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/rides/${ride.id}`);
+                        }}
+                      >
+                        View
+                      </Button>
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
-        <div className="text-sm text-muted-foreground">Total: {total} rides</div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="page-size">Rows</Label>
-            <Select value={String(limit)} onValueChange={(value) => onPageSizeChange(Number(value))}>
-              <SelectTrigger id="page-size" className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="30">30</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="text-sm">Page {page} of {totalPages || 1}</div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1 || isFetching}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= (totalPages || 1) || isFetching}
-            >
-              Next
-            </Button>
-          </div>
+                ))
+              ) : (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={8} className="p-0">
+                    <TableMessage>No trips found matching your filters.</TableMessage>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
-      </div>
+
+        <PageFooter
+          shown={rides.length}
+          total={total}
+          page={page}
+          totalPages={totalPages}
+          limit={limit}
+          noun="trips"
+          disabled={isFetching}
+          onPage={onPageChange}
+          onPageSize={onPageSizeChange}
+        />
+      </TableCard>
     </div>
   );
 }

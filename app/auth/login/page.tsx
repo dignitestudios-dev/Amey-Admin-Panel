@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { login } from "@/lib/slices/authSlice";
 import { useRouter } from "next/navigation";
@@ -85,18 +85,25 @@ const Login = () => {
   };
 
   return (
-    <div className="w-full max-w-md">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-        <p className="text-gray-600">Sign in to your account</p>
+    <div className="w-full">
+      <div className="mb-5 text-center">
+        <h2 className="text-[20px] font-semibold tracking-tight text-foreground">
+          Sign In
+        </h2>
+        <p className="mt-1 text-[14px] text-muted-foreground text-pretty">
+          Enter administrator credentials to authenticate
+        </p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+
+      <form onSubmit={handleSubmit} className="space-y-3.5">
+        <div className="space-y-1">
+          <Label htmlFor="email" className="text-[13px] font-medium text-foreground/80">
+            Email Address
+          </Label>
           <Input
             id="email"
             type="email"
-            placeholder="Enter your email"
+            placeholder="admin@theameyapp.com"
             value={email}
             onChange={(e) => {
               const value = e.target.value;
@@ -105,55 +112,73 @@ const Login = () => {
             }}
             autoComplete="email"
             required
+            className="h-9 text-[14px] bg-background/50 border-border/70 focus:border-primary transition-colors"
           />
-          {errors.email ? (
-            <p className="text-xs text-red-600">{errors.email}</p>
-          ) : null}
+          {errors.email && (
+            <p className="text-[12px] text-destructive">{errors.email}</p>
+          )}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" className="text-[13px] font-medium text-foreground/80">
+              Password
+            </Label>
+            <Link
+              href="/auth/forgot-password"
+              className="text-[13px] text-primary hover:underline transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
+              placeholder="••••••••••••"
               value={password}
-              onChange={(e) => {
-                const value = e.target.value;
-                setPassword(value);
-              }}
+              onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              className="pr-10"
+              required
+              className="h-9 text-[14px] pr-9 bg-background/50 border-border/70 focus:border-primary transition-colors"
             />
             <button
               type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               {showPassword ? (
-                <EyeOff className="h-5 w-5" />
+                <EyeOff className="size-3.5" />
               ) : (
-                <Eye className="h-5 w-5" />
+                <Eye className="size-3.5" />
               )}
             </button>
           </div>
         </div>
 
-        {loginMutation.isError ? (
-          <p className="text-sm text-red-600">{loginMutation.error.message}</p>
-        ) : null}
+        {loginMutation.isError && (
+          <div className="rounded-md border border-destructive/20 bg-destructive/10 p-2 text-[13px] text-destructive">
+            {loginMutation.error.message}
+          </div>
+        )}
 
-        <div className="mt-6 text-end">
-          <Link
-            href="/auth/forgot-password"
-            className="text-sm text-primary hover:underline"
-          >
-            Forgot your password?
-          </Link>
-        </div>
-
-        <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-          {loginMutation.isPending ? "Signing In..." : "Sign In"}
+        <Button
+          type="submit"
+          className="w-full h-9 mt-1 text-[14px] font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs gap-2 transition-all cursor-pointer rounded-md"
+          disabled={loginMutation.isPending}
+        >
+          {loginMutation.isPending ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" />
+              <span>Verifying...</span>
+            </>
+          ) : (
+            <>
+              <span>Sign In</span>
+              <ArrowRight className="size-3.5" />
+            </>
+          )}
         </Button>
       </form>
     </div>

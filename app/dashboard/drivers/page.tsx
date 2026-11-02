@@ -11,8 +11,8 @@ import {
   type DriverSecurityType,
   type DriverStatus,
 } from "@/lib/api/drivers.api";
-import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 
 interface DriverFilters {
   status: "all" | DriverStatus;
@@ -20,11 +20,10 @@ interface DriverFilters {
   rating: string;
   rideCount: string;
   sortBy: "asc" | "desc";
-    state: string | "all"; // ✅ ADD
-
+  state: string | "all";
 }
 
-const Drivers = () => {
+export default function DriversPage() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -36,8 +35,7 @@ const Drivers = () => {
     rating: "",
     rideCount: "",
     sortBy: (searchParams.get("sortBy") as "asc" | "desc") || "asc",
-      state: (searchParams.get("state") as string) || "all", // ✅ ADD
-
+    state: (searchParams.get("state") as string) || "all",
   });
 
   const [page, setPage] = useState(1);
@@ -45,7 +43,6 @@ const Drivers = () => {
   const [actionDriverId, setActionDriverId] = useState<string | null>(null);
 
   const router = useRouter();
-
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -63,8 +60,7 @@ const Drivers = () => {
       search: debouncedSearchQuery.trim() || undefined,
       rating: filters.rating ? Number(filters.rating) : undefined,
       rideCount: filters.rideCount ? Number(filters.rideCount) : undefined,
-          state: filters.state === "all" ? undefined : filters.state, // ✅ ADD
-
+      state: filters.state === "all" ? undefined : filters.state,
       sortBy: filters.sortBy,
       page,
       limit,
@@ -88,36 +84,34 @@ const Drivers = () => {
     mutationFn: rejectDriver,
   });
 
- const handleFilterChange = (nextFilters: DriverFilters) => {
-  setFilters(nextFilters);
-  setPage(1);
+  const handleFilterChange = (nextFilters: DriverFilters) => {
+    setFilters(nextFilters);
+    setPage(1);
 
-  const params = new URLSearchParams();
+    const params = new URLSearchParams();
 
-  if (nextFilters.status !== "all") {
-    params.set("status", nextFilters.status);
-  }
+    if (nextFilters.status !== "all") {
+      params.set("status", nextFilters.status);
+    }
 
-  if (nextFilters.sortBy) {
-    params.set("sortBy", nextFilters.sortBy);
-  }
+    if (nextFilters.armedType !== "all") {
+      params.set("armedType", nextFilters.armedType);
+    }
 
-  if (nextFilters.state && nextFilters.state !== "all") {
-    params.set("state", nextFilters.state); // ✅ ADD
-  }
+    if (nextFilters.state && nextFilters.state !== "all") {
+      params.set("state", nextFilters.state);
+    }
 
-  router.push(`?${params.toString()}`);
-};
+    if (nextFilters.sortBy) {
+      params.set("sortBy", nextFilters.sortBy);
+    }
+
+    router.push(`?${params.toString()}`);
+  };
 
   const handlePageChange = (nextPage: number) => {
-    if (!pagination) {
-      return;
-    }
-
-    if (nextPage < 1 || nextPage > pagination.totalPages) {
-      return;
-    }
-
+    if (!pagination) return;
+    if (nextPage < 1 || nextPage > pagination.totalPages) return;
     setPage(nextPage);
   };
 
@@ -129,37 +123,32 @@ const Drivers = () => {
   const handleApprove = async (driverId: string) => {
     setActionDriverId(driverId);
     try {
-      await approveMutation.mutateAsync({ driverId });
-      await Promise.all([
-        driversQuery.refetch(),
-        queryClient.invalidateQueries({
-          queryKey: ["driver-application-details", driverId],
-        }),
-      ]);
-      toast.success("Driver approved successfully.");
+      const response = await approveMutation.mutateAsync({ driverId });
+      toast.success(response.message || "Driver application approved successfully.");
+      queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-counts"] });
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Unable to approve driver.",
+        error instanceof Error ? error.message : "Unable to approve driver."
       );
     } finally {
       setActionDriverId(null);
     }
   };
 
-  const handleReject = async (driverId: string, rejectionReason: string) => {
+  const handleReject = async (driverId: string, reason: string) => {
     setActionDriverId(driverId);
     try {
-      await rejectMutation.mutateAsync({ driverId, rejectionReason });
-      await Promise.all([
-        driversQuery.refetch(),
-        queryClient.invalidateQueries({
-          queryKey: ["driver-application-details", driverId],
-        }),
-      ]);
-      toast.success("Driver rejected successfully.");
+      const response = await rejectMutation.mutateAsync({
+        driverId,
+        rejectionReason: reason,
+      });
+      toast.success(response.message || "Driver application rejected.");
+      queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-counts"] });
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Unable to reject driver.",
+        error instanceof Error ? error.message : "Unable to reject driver."
       );
     } finally {
       setActionDriverId(null);
@@ -167,42 +156,72 @@ const Drivers = () => {
   };
 
   return (
-    <div className="w-full">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-black">Driver Management</h1>
-        <p className="text-sm text-gray-500 mt-2">
-          Manage driver accounts, approve applications, and monitor driver
-          activities
-        </p>
+    <div className="flex flex-col min-w-0">
+      {/* Signature EpicRides Page Header */}
+      <header className="border-b border-border/60 bg-card/60 px-5 sm:px-6 pt-5 pb-5 backdrop-blur-md">
+        <nav className="mb-2 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <span>Fleet</span>
+          <ChevronRight className="size-3 opacity-50" />
+          <span className="text-foreground font-medium">Driver Onboarding</span>
+        </nav>
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+          <div className="min-w-0">
+            <p className="eyebrow mb-1">Driver pipeline & fleet</p>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+              Driver Onboarding
+            </h1>
+            <p className="text-[15px] leading-relaxed text-muted-foreground mt-0.5">
+              Application pipeline, background verifications, document review, and active roster.
+            </p>
+          </div>
+
+          {/* Quick Metrics Badges in Header */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-baseline gap-1.5 rounded-md border border-border/70 bg-background/60 px-2.5 py-1">
+              <span className="text-[12px] uppercase tracking-[0.05em] text-muted-foreground">Total Drivers</span>
+              <span className="text-xs font-semibold tnum text-primary">
+                {pagination?.total?.toLocaleString("en-US") ?? "0"}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5 rounded-md border border-border/70 bg-background/60 px-2.5 py-1">
+              <span className="text-[12px] uppercase tracking-[0.05em] text-muted-foreground">Status</span>
+              <span className="text-xs font-semibold text-foreground capitalize">
+                {filters.status}
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 p-4 md:p-6 lg:p-7 max-w-[1600px] w-full mx-auto space-y-4">
+        <DriversDataTable
+          drivers={drivers}
+          filters={filters}
+          searchQuery={searchQuery}
+          page={pagination?.page ?? page}
+          limit={pagination?.limit ?? limit}
+          total={pagination?.total ?? 0}
+          totalPages={pagination?.totalPages ?? 1}
+          isLoading={driversQuery.isLoading}
+          isFetching={driversQuery.isFetching}
+          error={driversQuery.error?.message ?? null}
+          onFilterChange={handleFilterChange}
+          onSearchChange={(value) => {
+            setSearchQuery(value);
+            if (!value.trim()) {
+              setDebouncedSearchQuery("");
+              setPage(1);
+            }
+          }}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          onApproveDriver={handleApprove}
+          onRejectDriver={handleReject}
+          actionDriverId={actionDriverId}
+          onRefresh={() => driversQuery.refetch()}
+        />
       </div>
-      <DriversDataTable
-        drivers={drivers}
-        filters={filters}
-        searchQuery={searchQuery}
-        page={pagination?.page ?? page}
-        limit={pagination?.limit ?? limit}
-        total={pagination?.total ?? 0}
-        totalPages={pagination?.totalPages ?? 1}
-        isLoading={driversQuery.isLoading}
-        isFetching={driversQuery.isFetching}
-        error={driversQuery.error?.message ?? null}
-        onFilterChange={handleFilterChange}
-        onSearchChange={(value) => {
-          setSearchQuery(value);
-          if (!value.trim()) {
-            setDebouncedSearchQuery("");
-            setPage(1);
-          }
-        }}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-        onApproveDriver={handleApprove}
-        onRejectDriver={handleReject}
-        actionDriverId={actionDriverId}
-        onRefresh={() => driversQuery.refetch()}
-      />
     </div>
   );
-};
-
-export default Drivers;
+}

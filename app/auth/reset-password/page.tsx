@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2, KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
@@ -52,21 +52,20 @@ const ResetPassword = () => {
     e.preventDefault();
     setError("");
 
-    // Validate passwords
     if (!password || !confirmPassword) {
-      setError("Please fill in all fields");
+      setError("Please fill in all fields.");
       return;
     }
 
     if (!passwordPattern.test(password)) {
       setError(
-        "Password must have at least 8 characters, including uppercase, lowercase, number, and special character.",
+        "Password must contain at least 8 characters, including uppercase, lowercase, number, and special character.",
       );
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
 
@@ -80,88 +79,97 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="w-full max-w-md">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h2>
-        <p className="text-gray-600">
-          Enter your new password below
+    <div className="w-full">
+      <div className="mb-6 text-center">
+        <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          Set New Password
+        </h2>
+        <p className="mt-1 text-xs text-muted-foreground text-pretty">
+          Create a secure password to protect your admin access
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className="text-xs font-medium text-foreground/90">
+            New Password
+          </Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="h-10 text-xs pr-10 bg-background/50 border-border/50 focus:border-primary transition-colors"
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="confirmPassword" className="text-xs font-medium text-foreground/90">
+            Confirm Password
+          </Label>
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="••••••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className="h-10 text-xs pr-10 bg-background/50 border-border/50 focus:border-primary transition-colors"
+            />
+            <button
+              type="button"
+              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
+        </div>
+
         {error && (
-          <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+          <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive">
             {error}
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="password">New Password</Label>
-          <div className="relative">
-            <Input
-              id="password"
-              type={!showPassword ? "password" : "text"}
-              placeholder="Enter your new password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-            >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <div className="relative">
-            <Input
-              id="confirmPassword"
-              type={!showConfirmPassword ? "password" : "text"}
-              placeholder="Confirm your new password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-            >
-              {showConfirmPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {resetPasswordMutation.isError ? (
-          <p className="text-sm text-red-600">{resetPasswordMutation.error.message}</p>
-        ) : null}
-
-        <p className="text-xs text-gray-500">
-          Use at least 8 characters with one uppercase, one lowercase, one number, and one special character.
-        </p>
-
-        <Button type="submit" className="w-full" disabled={resetPasswordMutation.isPending}>
-          {resetPasswordMutation.isPending ? "Resetting Password..." : "Reset Password"}
+        <Button
+          type="submit"
+          className="w-full h-10 mt-2 text-xs font-medium bg-primary hover:bg-primary/90 text-white shadow-xs gap-2 transition-all cursor-pointer"
+          disabled={resetPasswordMutation.isPending}
+        >
+          {resetPasswordMutation.isPending ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" />
+              <span>Saving Password...</span>
+            </>
+          ) : (
+            <>
+              <KeyRound className="size-3.5" />
+              <span>Update Password</span>
+            </>
+          )}
         </Button>
 
-        <div className="text-center">
-          <Link href="/auth/login" className="text-sm text-primary hover:underline">
-            Back to Sign In
+        <div className="text-center pt-1">
+          <Link
+            href="/auth/login"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Cancel and return to sign in
           </Link>
         </div>
       </form>

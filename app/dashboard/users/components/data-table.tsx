@@ -1,29 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Eye, Filter, Loader2, RotateCcw, Search, Users } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Loader2, MapPin, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  FilterBar,
+  FilterSelect,
+  InitialAvatar,
+  PageFooter,
+  SearchField,
+  StatusDot,
+  StatusTabs,
+  TableCard,
+  TableMessage,
+  tdClass,
+  thClass,
+  type Tone,
+} from "@/components/data-table-ui";
 import {
   Table,
   TableBody,
@@ -41,7 +33,7 @@ interface PassengerFilters {
   date: string;
   rideCount: string;
   sortBy: "asc" | "desc";
-  state: string | "all"; // ✅ ADD
+  state: string | "all";
 }
 
 interface DataTableProps {
@@ -64,43 +56,46 @@ interface DataTableProps {
   onRefresh: () => void;
 }
 
-const getInitials = (name: string) => {
-  const parts = name.trim().split(" ");
-  if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
-};
-
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("en-US", {
-    year: "numeric",
     month: "short",
     day: "2-digit",
+    year: "numeric",
   });
 };
 
-const getStatusClasses = (status: AccountStatus) => {
+const statusTone = (status: AccountStatus): Tone => {
   switch (status) {
     case "approved":
-      return "text-green-700 bg-green-700/10 border-green-700/10";
-    case "pending":
-      return "text-amber-700 bg-amber-700/10 border-amber-700/10";
-    case "rejected":
-      return "text-red-700 bg-red-700/10 border-red-700/10";
-    case "onHold":
-      return "text-orange-700 bg-orange-700/10 border-orange-700/10";
     case "admin-approved":
-      return "text-blue-700 bg-blue-700/10 border-blue-700/10";
+      return "success";
+    case "pending":
+    case "onHold":
+      return "warning";
+    case "rejected":
     case "deleted":
-      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+      return "danger";
     default:
-      return "text-gray-700 bg-gray-700/10 border-gray-700/10";
+      return "neutral";
   }
+};
+
+const STATUS_TABS = [
+  { id: "all", label: "All riders" },
+  { id: "approved", label: "Approved" },
+  { id: "pending", label: "Pending" },
+  { id: "onHold", label: "On hold" },
+  { id: "rejected", label: "Rejected" },
+];
+
+const DEFAULT_FILTERS: PassengerFilters = {
+  status: "all",
+  date: "",
+  rideCount: "",
+  sortBy: "asc",
+  state: "all",
 };
 
 export function DataTable({
@@ -121,460 +116,187 @@ export function DataTable({
   onToggleRestrict,
   restrictingPassengerId,
 }: DataTableProps) {
-  const [draftFilters, setDraftFilters] = useState<PassengerFilters>(filters);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const router = useRouter();
-  const activeFilterCount = [
-    filters.status,
-    filters.date || "all",
-    filters.rideCount || "all",
-    filters.sortBy,
-    filters.state, // ✅ ADD
-  ].filter((value) => value !== "all").length;
 
   const hasActiveFilters =
-  filters.status !== "all" ||
-  Boolean(filters.date) ||
-  Boolean(filters.rideCount) ||
-  filters.sortBy !== "asc" ||
-  filters.state !== "all" ||
-  searchQuery !== "";
+    filters.status !== "all" ||
+    (filters.state && filters.state !== "all") ||
+    Boolean(filters.date) ||
+    Boolean(filters.rideCount) ||
+    Boolean(searchQuery.trim());
+
+  const stateOptions = [
+    { value: "all", label: "All states" },
+    ...US_STATES.map((st) => ({ value: st, label: st })),
+  ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span />
+    <div className="space-y-5">
+      <StatusTabs
+        tabs={STATUS_TABS}
+        value={filters.status}
+        onChange={(id) => onFilterChange({ ...filters, status: id as PassengerFilters["status"] })}
+      />
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-72">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search passengers..."
-              className="pl-10 h-9 text-sm border border-gray-200 bg-white"
-              value={searchQuery}
-              onChange={(event) => onSearchChange(event.target.value)}
-            />
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 w-9 p-0 border border-gray-200 relative"
-            onClick={() => {
-              setDraftFilters(filters);
-              setIsFilterOpen(true);
-            }}
-            title="Open filters"
-          >
-            <Filter className="w-4 h-4 text-gray-700" />
-            {activeFilterCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 h-4 min-w-4 rounded-full bg-black px-1 text-[10px] leading-4 text-white">
-                {activeFilterCount}
-              </span>
-            )}
-          </Button>
-
+      <TableCard
+        title="Rider accounts"
+        subtitle="Every rider account with contact details, standing and trip count"
+      >
+        <FilterBar>
+          <SearchField
+            value={searchQuery}
+            onChange={onSearchChange}
+            placeholder="Search by name, email or phone"
+          />
+          <FilterSelect
+            icon={MapPin}
+            value={filters.state || "all"}
+            onChange={(v) => onFilterChange({ ...filters, state: v })}
+            options={stateOptions}
+            className="w-[170px]"
+          />
           {hasActiveFilters && (
             <Button
               variant="ghost"
               size="sm"
-              className="text-gray-600 hover:text-black"
+              className="h-10 cursor-pointer rounded-lg px-3 text-[14px] text-muted-foreground hover:text-foreground"
               onClick={() => {
-                onFilterChange({
-  status: "all",
-  date: "",
-  rideCount: "",
-  sortBy: "asc",
-  state: "all", // ✅ REQUIRED
-});
+                onFilterChange(DEFAULT_FILTERS);
                 onSearchChange("");
               }}
-              title="Clear filters"
             >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <Dialog
-        open={isFilterOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDraftFilters(filters);
-          }
-          setIsFilterOpen(open);
-        }}
-      >
-        <DialogContent className="sm:max-w-140 p-0 overflow-hidden">
-          <DialogHeader className="border-b bg-muted/30 px-6 py-5">
-            <DialogTitle className="text-black">Filter Passengers</DialogTitle>
-            <DialogDescription>
-              Select your criteria and save to apply all filters at once.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="px-6 py-5 space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">Status</Label>
-                <Select
-                  value={draftFilters.status}
-                  onValueChange={(value) =>
-                    setDraftFilters({
-                      ...draftFilters,
-                      status: value as PassengerFilters["status"],
-                    })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                    <SelectItem value="onHold">On Hold</SelectItem>
-                    <SelectItem value="admin-approved">
-                      Admin Approved
-                    </SelectItem>
-                    <SelectItem value="deleted">Deleted</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">
-                  Registration Date
-                </Label>
-                <Input
-                  type="date"
-                  value={draftFilters.date}
-                  onChange={(event) =>
-                    setDraftFilters({
-                      ...draftFilters,
-                      date: event.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">
-                  Sort Order
-                </Label>
-                <Select
-                  value={draftFilters.sortBy}
-                  onValueChange={(value) =>
-                    setDraftFilters({
-                      ...draftFilters,
-                      sortBy: value as "asc" | "desc",
-                    })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="asc">Ascending</SelectItem>
-                    <SelectItem value="desc">Descending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm text-black block">
-                  Minimum Rides
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={draftFilters.rideCount}
-                  placeholder="e.g. 7"
-                  onChange={(event) =>
-                    setDraftFilters({
-                      ...draftFilters,
-                      rideCount: event.target.value,
-                    })
-                  }
-                />
-              </div>
-            </div>
-
-           <div className="space-y-2">
-  <Label className="text-sm text-black block">State</Label>
-
-  <Select
-    value={draftFilters.state || "all"} // ✅ controlled
-    onValueChange={(value) =>
-      setDraftFilters({
-        ...draftFilters,
-        state: value, // ✅ updates draft only
-      })
-    }
-  >
-    <SelectTrigger className="w-full">
-      <SelectValue placeholder="Select state" />
-    </SelectTrigger>
-
-    <SelectContent>
-      <SelectItem value="all">All States</SelectItem>
-
-      {US_STATES.map((state) => (
-        <SelectItem key={state} value={state}>
-          {state}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
-
-            <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              {activeFilterCount > 0
-                ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} currently applied.`
-                : "No filters are currently applied."}
-            </div>
-
-
-          </div>
-
-          
-
-          <DialogFooter className="border-t px-6 py-4 gap-2">
-            <Button
-              variant="outline"
-              onClick={() =>
-                setDraftFilters({
-                  status: "all",
-                  date: "",
-                  rideCount: "",
-                  sortBy: "asc",
-                  state: "all", // ✅ ADD
-                })
-              }
-            >
+              <RotateCcw className="size-4" />
               Reset
             </Button>
-            <Button variant="outline" onClick={() => setIsFilterOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                onFilterChange(draftFilters);
-                setIsFilterOpen(false);
-              }}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          )}
+          <span className="ml-auto text-[13px] text-muted-foreground tnum">{total} shown</span>
+        </FilterBar>
 
-      <Card className="shadow-none border-none pt-0 rounded-md overflow-hidden bg-white">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-gray-50 rounded-2xl!">
-                <TableRow className="h-16 border-none rounded-2xl!">
-                  <TableHead>Passenger</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Total Rides</TableHead>
-                 
-                   <TableHead className="text-right">
-                   State
-                  </TableHead>
-                   <TableHead className="text-right">
-                    Registration Date
-                  </TableHead>
-                  <TableHead className="text-right">
-                    Action
-                  </TableHead>
+        <div className="overflow-x-auto">
+          <Table className="w-full min-w-[860px] text-[14px]">
+            <TableHeader>
+              <TableRow className="border-b border-border hover:bg-transparent">
+                <TableHead className={`${thClass} text-left`}>Rider</TableHead>
+                <TableHead className={`${thClass} text-left`}>Phone</TableHead>
+                <TableHead className={`${thClass} text-left`}>Status</TableHead>
+                <TableHead className={`${thClass} text-right`}>Rides</TableHead>
+                <TableHead className={`${thClass} text-left`}>State</TableHead>
+                <TableHead className={`${thClass} text-left`}>Registered</TableHead>
+                <TableHead className={`${thClass} text-right`}>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="p-0">
+                    <TableMessage>Loading rider registry...</TableMessage>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      Loading passengers...
-                    </TableCell>
-                  </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="text-center py-8 text-red-600"
-                    >
-                      {error}
-                    </TableCell>
-                  </TableRow>
-                ) : passengers.length > 0 ? (
-                  passengers.map((passenger) => {
-                    const normalizedStatus = String(
-                      passenger.status,
-                    ).toLowerCase();
-                    const canToggleRestriction =
-                      normalizedStatus === "approved" ||
-                      normalizedStatus === "onhold";
-                    const isOnHoldStatus = normalizedStatus === "onhold";
-                    const isRowUpdating =
-                      restrictingPassengerId === passenger.id;
+              ) : error ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="p-0">
+                    <TableMessage tone="error">{error}</TableMessage>
+                  </TableCell>
+                </TableRow>
+              ) : passengers.length > 0 ? (
+                passengers.map((passenger) => {
+                  const normalizedStatus = String(passenger.status).toLowerCase();
+                  const canToggleRestriction =
+                    normalizedStatus === "approved" || normalizedStatus === "onhold";
+                  const isOnHoldStatus = normalizedStatus === "onhold";
+                  const isRowUpdating = restrictingPassengerId === passenger.id;
 
-                    return (
-                      <TableRow
-                        key={passenger.id}
-                        className="hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => router.push(`/dashboard/users/${passenger.id}`)}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="text-xs font-medium">
-                                {getInitials(passenger.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p>{passenger.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {passenger.email}
-                              </p>
-                            </div>
+                  return (
+                    <TableRow
+                      key={passenger.id}
+                      className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-accent/60"
+                      onClick={() => router.push(`/dashboard/users/${passenger.id}`)}
+                    >
+                      <TableCell className={tdClass}>
+                        <div className="flex items-center gap-3">
+                          <InitialAvatar name={passenger.name} />
+                          <div className="min-w-0 leading-tight">
+                            <p className="font-semibold text-foreground">{passenger.name}</p>
+                            <p className="max-w-[220px] truncate text-[12px] text-muted-foreground">
+                              {passenger.email}
+                            </p>
                           </div>
-                        </TableCell>
-                        <TableCell>{passenger.phone || "-"}</TableCell>
-                        <TableCell>
-                          <Badge
-                            className={`text-xs rounded-full px-2 py-0.5 ${getStatusClasses(passenger.status)}`}
+                        </div>
+                      </TableCell>
+                      <TableCell className={`${tdClass} text-muted-foreground tnum`}>
+                        {passenger.phone || "—"}
+                      </TableCell>
+                      <TableCell className={tdClass}>
+                        <StatusDot tone={statusTone(passenger.status)}>{passenger.status}</StatusDot>
+                      </TableCell>
+                      <TableCell className={`${tdClass} text-right font-semibold tnum`}>
+                        {passenger.totalRides}
+                      </TableCell>
+                      <TableCell className={`${tdClass} text-muted-foreground`}>
+                        {passenger?.state || "—"}
+                      </TableCell>
+                      <TableCell className={`${tdClass} text-muted-foreground tnum`}>
+                        {formatDate(passenger.regDate)}
+                      </TableCell>
+                      <TableCell className={`${tdClass} text-right`}>
+                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/dashboard/users/${passenger.id}`)}
+                            className="h-8 cursor-pointer rounded-lg px-3 text-[13px] text-primary hover:bg-primary/10"
                           >
-                            {passenger.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="text-black">
-                            {passenger.totalRides}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-  <span className="text-black">
-    {passenger?.state || "-"}
-  </span>
-</TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-black">
-                            {formatDate(passenger.regDate)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end items-center gap-2">
-                            {canToggleRestriction ? (
-                              <Button
-                                variant={
-                                  isOnHoldStatus ? "default" : "destructive"
-                                }
-                                className={
-                                  isOnHoldStatus
-                                    ? "bg-green-600 hover:bg-green-700 text-white"
-                                    : undefined
-                                }
-                                size="sm"
-                                onClick={() =>
-                                  onToggleRestrict(
-                                    passenger.id,
-                                    normalizedStatus === "approved",
-                                  )
-                                }
-                                disabled={isRowUpdating || isFetching}
-                                title={
-                                  isOnHoldStatus
-                                    ? "Unrestrict passenger"
-                                    : "Restrict passenger"
-                                }
-                              >
-                                {isRowUpdating ? (
-                                  <>
-                                    <Loader2 className="mr-2 size-4 animate-spin" />
-                                    Updating...
-                                  </>
-                                ) : isOnHoldStatus ? (
-                                  "Unrestrict"
-                                ) : (
-                                  "Restrict"
-                                )}
-                              </Button>
-                            ) : null}
-
-                          
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <p className="text-muted-foreground">
-                        No passengers found matching filters
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
-        <div className="text-sm text-muted-foreground">
-          Total: {total} passengers
+                            View
+                          </Button>
+                          {canToggleRestriction ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={`h-8 cursor-pointer rounded-lg px-3 text-[13px] font-medium ${
+                                isOnHoldStatus
+                                  ? "border-primary/40 text-primary hover:bg-primary/10"
+                                  : "border-destructive/40 text-destructive hover:bg-destructive/10"
+                              }`}
+                              onClick={() => onToggleRestrict(passenger.id, normalizedStatus === "approved")}
+                              disabled={isRowUpdating || isFetching}
+                            >
+                              {isRowUpdating ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : isOnHoldStatus ? (
+                                "Unrestrict"
+                              ) : (
+                                "Restrict"
+                              )}
+                            </Button>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="p-0">
+                    <TableMessage>No riders found matching your filters.</TableMessage>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="page-size">Rows</Label>
-            <Select
-              value={String(limit)}
-              onValueChange={(value) => onPageSizeChange(Number(value))}
-            >
-              <SelectTrigger id="page-size" className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="30">30</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="text-sm">
-            Page {page} of {totalPages || 1}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1 || isFetching}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= (totalPages || 1) || isFetching}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      </div>
+        <PageFooter
+          shown={passengers.length}
+          total={total}
+          page={page}
+          totalPages={totalPages}
+          limit={limit}
+          noun="riders"
+          disabled={isFetching}
+          onPage={onPageChange}
+          onPageSize={onPageSizeChange}
+        />
+      </TableCard>
     </div>
   );
 }

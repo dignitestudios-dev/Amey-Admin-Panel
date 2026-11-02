@@ -11,6 +11,7 @@ import {
   sendResetOtp,
   verifyResetOtp,
 } from "@/lib/api/auth.api";
+import { ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 
 const Verification = () => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -52,7 +53,7 @@ const Verification = () => {
       setExistingResetToken("");
       setOtp(["", "", "", "", "", ""]);
       setError("");
-      setInfo("A new OTP has been sent.");
+      setInfo("A new verification code has been dispatched.");
       inputRefs.current[0]?.focus();
     },
     onError: (mutationError: Error) => {
@@ -63,25 +64,18 @@ const Verification = () => {
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    index: number
+    index: number,
   ) => {
     const value = e.target.value;
 
-    // Only allow numbers
     if (!/^\d*$/.test(value)) {
       return;
     }
 
-    // Limit to single digit
-    if (value.length > 1) {
-      return;
-    }
-
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = value.slice(-1);
     setOtp(newOtp);
 
-    // Auto focus to next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -89,33 +83,19 @@ const Verification = () => {
 
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
+    index: number,
   ) => {
-    if (e.key === "Backspace") {
-      e.preventDefault();
-
-      const newOtp = [...otp];
-      if (otp[index]) {
-        // Clear current input
-        newOtp[index] = "";
-        setOtp(newOtp);
-      } else if (index > 0) {
-        // Auto focus to previous input
-        newOtp[index - 1] = "";
-        setOtp(newOtp);
-        inputRefs.current[index - 1]?.focus();
-      }
-    } else if (e.key === "ArrowLeft" && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
-    } else if (e.key === "ArrowRight" && index < 5) {
-      inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const otpCode = otp.join("");
     setError("");
+    setInfo("");
+
+    const otpCode = otp.join("");
 
     if (otpExpired) {
       setError("OTP Expired");
@@ -154,15 +134,17 @@ const Verification = () => {
   const displayError = error || (otpExpired ? "OTP Expired" : "");
 
   return (
-    <div className="w-full max-w-md">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Email</h2>
-        <p className="text-gray-600">
-          We have sent a 6-digit code to your email address. Enter it below.
+    <div className="w-full">
+      <div className="mb-6 text-center">
+        <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          Enter Security Code
+        </h2>
+        <p className="mt-1 text-xs text-muted-foreground text-pretty">
+          Enter the 6-digit OTP sent to <span className="font-medium text-foreground">{email || "your email"}</span>
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="flex justify-center gap-2">
           {otp.map((digit, index) => (
             <input
@@ -177,37 +159,59 @@ const Verification = () => {
               onChange={(e) => handleInputChange(e, index)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               disabled={isResending}
-              className="w-12 h-12 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="size-11 text-center text-lg font-mono font-bold bg-background/50 border border-border/60 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-foreground"
               aria-label={`OTP digit ${index + 1}`}
             />
           ))}
         </div>
 
-        {displayError ? <p className="text-sm text-red-600">{displayError}</p> : null}
-        {info ? <p className="text-sm text-green-600">{info}</p> : null}
+        {displayError && (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive text-center">
+            {displayError}
+          </div>
+        )}
 
-        <div className="text-right">
+        {info && (
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-xs text-emerald-600 dark:text-emerald-400 text-center flex items-center justify-center gap-1.5">
+            <CheckCircle2 className="size-3.5" />
+            <span>{info}</span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">Didn&apos;t receive code?</span>
           <button
             type="button"
-            className="text-sm text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+            className="text-primary hover:text-primary/80 transition-colors font-medium disabled:opacity-50 cursor-pointer"
             onClick={handleResendOtp}
             disabled={isDisabled || !email}
           >
-            {isResending ? "Resending..." : "Resend"}
+            {isResending ? "Resending..." : "Resend Code"}
           </button>
         </div>
 
         <Button
           type="submit"
-          className="w-full"
+          className="w-full h-10 text-xs font-medium bg-primary hover:bg-primary/90 text-white shadow-xs gap-2 transition-all cursor-pointer"
           disabled={otpExpired || !isComplete || isDisabled}
         >
-          {verifyOtpMutation.isPending ? "Verifying..." : "Verify OTP"}
+          {verifyOtpMutation.isPending ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" />
+              <span>Verifying...</span>
+            </>
+          ) : (
+            <span>Verify & Proceed</span>
+          )}
         </Button>
 
-        <div className="text-center">
-          <Link href="/auth/login" className="text-sm text-primary hover:underline">
-            Back to Sign In
+        <div className="text-center pt-1">
+          <Link
+            href="/auth/login"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span>Back to sign in</span>
           </Link>
         </div>
       </form>

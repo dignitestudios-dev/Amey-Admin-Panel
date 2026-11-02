@@ -6,7 +6,6 @@ import {
   Users,
   CarTaxiFront,
   Navigation,
-  CreditCard,
   BarChart3,
   Bell,
   Motorbike,
@@ -30,14 +29,9 @@ import {
 } from "@/components/ui/sidebar";
 
 const data = {
-  user: {
-    name: "Next js",
-    email: "admin@example.com",
-    avatar: "",
-  },
   navGroups: [
     {
-      label: "Dashboards",
+      label: "Platform Operations",
       items: [
         {
           title: "Dashboard",
@@ -47,10 +41,10 @@ const data = {
       ],
     },
     {
-      label: "Manage",
+      label: "Fleet & Users",
       items: [
-         {
-          title: "States",
+        {
+          title: "States & Regions",
           url: "/dashboard/states",
           icon: MapPinHouse,
         },
@@ -65,7 +59,7 @@ const data = {
           icon: CarTaxiFront,
         },
         {
-          title: "Rides",
+          title: "Rides History",
           url: "/dashboard/rides",
           icon: Navigation,
         },
@@ -77,7 +71,7 @@ const data = {
       ],
     },
     {
-      label: "Analytics & Notifications",
+      label: "Finance & Alerts",
       items: [
         {
           title: "Reports & Analytics",
@@ -104,36 +98,52 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         avatar: "",
       }
     : {
-        name: "Guest",
-        email: "",
+        name: "Amey Admin",
+        email: "admin@theameyapp.com",
         avatar: "",
       };
 
   return (
-    <Sidebar {...props}>
-      <SidebarHeader>
+    <Sidebar
+      {...props}
+      className="border-r border-border/40 backdrop-blur-xl bg-sidebar/85 select-none"
+    >
+      <SidebarHeader className="border-b border-border/30 px-3.5 py-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
-                <div className="flex aspect-square size-11 items-center justify-center rounded-lg bg-black/80 text-primary-foreground">
-                  <Logo size={20} className="text-current" />
+            <SidebarMenuButton
+              size="default"
+              asChild
+              className="h-9 hover:bg-muted/50 transition-colors cursor-pointer"
+            >
+              <Link href="/dashboard" className="flex items-center gap-2.5">
+                <div className="flex size-7 items-center justify-center rounded-md border border-primary/30 bg-primary/10 shadow-xs">
+                  <Logo size={16} />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Amey</span>
-                  <span className="truncate text-xs">Admin Dashboard</span>
+                <div className="flex flex-col text-left leading-tight">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[15px] font-bold tracking-tight text-foreground">
+                      Amey Command
+                    </span>
+                    <span className="inline-flex size-1.5 rounded-full bg-primary animate-pulse" />
+                  </div>
+                  <span className="text-[12px] text-muted-foreground font-mono">
+                    Ops Console v1.0
+                  </span>
                 </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+
+      <SidebarContent className="px-2 py-2.5">
         {data.navGroups.map((group) => (
           <NavMain key={group.label} label={group.label} items={group.items} />
         ))}
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="border-t border-border/30 p-2">
         <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>

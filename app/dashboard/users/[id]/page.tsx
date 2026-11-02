@@ -411,18 +411,18 @@ export default function PassengerDetailsPage() {
                   No ride history available.
                 </div>
               ) : (
-                <div className="rounded-lg border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/40">
-                        <TableHead>Status</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Driver</TableHead>
-                        <TableHead>Pickup</TableHead>
-                        <TableHead>Drop Off</TableHead>
-                        <TableHead className="text-right">Fare</TableHead>
-                        <TableHead>Start Time</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
+                <div className="rounded-lg border border-border/70 overflow-hidden shadow-xs bg-card/85 backdrop-blur-md">
+                  <Table className="w-full text-[15px]">
+                    <TableHeader className="bg-muted/30 border-b border-border/70">
+                      <TableRow className="border-none hover:bg-transparent">
+                        <TableHead className="h-9 px-4 text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Status</TableHead>
+                        <TableHead className="h-9 px-4 text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Category</TableHead>
+                        <TableHead className="h-9 px-4 text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Driver</TableHead>
+                        <TableHead className="h-9 px-4 text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Pickup</TableHead>
+                        <TableHead className="h-9 px-4 text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Drop Off</TableHead>
+                        <TableHead className="h-9 px-4 text-right text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Fare</TableHead>
+                        <TableHead className="h-9 px-4 text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Start Time</TableHead>
+                        <TableHead className="h-9 px-4 text-right text-[12px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -550,11 +550,11 @@ export default function PassengerDetailsPage() {
                   <div className="text-xs text-muted-foreground">Route</div>
                   <div className="mt-2 space-y-2">
                     <div>
-                      <div className="text-[11px] text-muted-foreground">Pickup</div>
+                      <div className="text-[13px] text-muted-foreground">Pickup</div>
                       <div className="text-sm font-medium">{selectedRide.pickupPointName}</div>
                     </div>
                     <div>
-                      <div className="text-[11px] text-muted-foreground">Drop Off</div>
+                      <div className="text-[13px] text-muted-foreground">Drop Off</div>
                       <div className="text-sm font-medium">{selectedRide.dropOffPointName}</div>
                     </div>
                   </div>
